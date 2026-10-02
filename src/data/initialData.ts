@@ -1,0 +1,117 @@
+import { CompanyConfig, WhatsAppSector, BioLinkItem, LeadRecord } from '../types';
+
+export const DEFAULT_AVATAR_URL = 'https://lh3.googleusercontent.com/aida/AEtjO1V_v1os4hcvh8zwG6wyDhaL5tNyCapocovCMo-L1qDWOPWARIOZ0iGxJk6qtQGfCPxobzNm8OMgfVezCIfXtLCTjBzX2otEBdtijsxHNrZNZV1rVPDPm1m49adG0dDwbsZGYaNTb5zVT-0zaBGRz5lTMuOfqt8KawIbyvPaMzGxDarDRGbcNlOBrVu5cY2qmhxXzXnOxHfs9wS0bGz2dtjHl9L3qvVKlqh3PyXUCtsWN8yF27KbAJlxNxLU';
+
+export const INITIAL_COMPANY_CONFIG: CompanyConfig = {
+  name: 'Nova ISP',
+  bioHeadline: 'Olá! Como podemos ajudar?',
+  bioSubtitle: 'Selecione o assunto para falar diretamente com o setor responsável no WhatsApp.',
+  logoUrl: DEFAULT_AVATAR_URL,
+  verified: true,
+  onlineStatus: true,
+  onlineLabel: 'Online agora',
+  primaryColor: '#10B981',
+  bioSlug: 'seulink.bio/novaisp',
+  googleScriptUrl: 'https://script.google.com/macros/s/AKfycbxBCfyLlinAEnSzx6_miM4yE8JvZCA3G58jndfeFwsCAxfmQlueXIWwjnM6K-zKUV-yAA/exec',
+  sheetsConnected: true,
+  detectedOrigin: 'Instagram Bio',
+  securityNoticeText: 'Seus dados são usados exclusivamente para o atendimento com segurança e privacidade.',
+};
+
+export const INITIAL_SECTORS: WhatsAppSector[] = [
+  {
+    id: 'comercial',
+    name: 'Atendimento Comercial',
+    icon: 'shopping_cart',
+    phone: '5521999990001',
+    initialMessage: 'Olá! Vim pelas rede sociais da Nova ISP e gostaria de conhecer os planos disponíveis. 😁💜',
+    isOnline: true,
+    responseTime: '~2 min',
+    colorType: 'primary',
+  },
+  {
+    id: 'suporte',
+    name: 'Suporte Técnico',
+    icon: 'build',
+    phone: '5521999990002',
+    initialMessage: 'Olá! Preciso de suporte técnico para minha conta.',
+    isOnline: true,
+    responseTime: '~5 min',
+    colorType: 'secondary',
+  },
+  {
+    id: 'financeiro',
+    name: 'Financeiro',
+    icon: 'credit_card',
+    phone: '5521999990003',
+    initialMessage: 'Olá! Preciso de ajuda com boletos ou questões financeiras.',
+    isOnline: true,
+    responseTime: '~10 min',
+    colorType: 'tertiary',
+  },
+  {
+    id: 'pix',
+    name: 'Pague com PIX',
+    icon: 'qr_code_2',
+    phone: '5521999990004',
+    initialMessage: 'Olá! Gostaria de receber a chave PIX ou QR Code para pagamento rápido.',
+    isOnline: true,
+    responseTime: 'Imediato',
+    colorType: 'primary',
+  },
+];
+
+export const INITIAL_BIO_LINKS: BioLinkItem[] = [
+  {
+    id: 'link-1',
+    title: 'Quero contratar',
+    subtitle: 'Planos, cotações e novos pedidos',
+    sectorId: 'comercial',
+    responseTime: '~2 min',
+    badgeIcon: 'bolt',
+    icon: 'shopping_cart',
+    colorType: 'primary',
+    active: true,
+    order: 1,
+    customMessage: 'Olá! Vim pelas rede sociais da Nova ISP e gostaria de conhecer os planos disponíveis. 😁💜',
+  },
+  {
+    id: 'link-2',
+    title: 'Preciso de suporte',
+    subtitle: 'Dúvidas técnicas e chamados',
+    sectorId: 'suporte',
+    responseTime: '~5 min',
+    badgeIcon: 'schedule',
+    icon: 'build',
+    colorType: 'secondary',
+    active: true,
+    order: 2,
+  },
+  {
+    id: 'link-3',
+    title: 'Assunto financeiro',
+    subtitle: 'Boletos, faturas e pagamentos',
+    sectorId: 'financeiro',
+    responseTime: '~10 min',
+    badgeIcon: 'history',
+    icon: 'credit_card',
+    colorType: 'tertiary',
+    active: true,
+    order: 3,
+  },
+  {
+    id: 'link-4',
+    title: 'Pague com PIX',
+    subtitle: 'Chave, QR Code e confirmação imediata',
+    sectorId: 'pix',
+    responseTime: 'Imediato',
+    badgeIcon: 'bolt',
+    icon: 'qr_code_2',
+    colorType: 'primary',
+    active: true,
+    order: 4,
+    customUrl: 'https://pix.novaisp.com.br/login',
+  },
+];
+
+export const INITIAL_LEADS: LeadRecord[] = [];

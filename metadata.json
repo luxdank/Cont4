@@ -1,0 +1,6 @@
+{
+  "name": "SmartLink Bio & WhatsApp Leads",
+  "description": "Link na Bio inteligente com roteamento de WhatsApp por setores, captura automática de leads e integração com Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
