@@ -323,20 +323,33 @@ export const AdminLinks: React.FC<AdminLinksProps> = ({
 
                   {/* External Redirect URL */}
                   <div>
-                    <label className="text-[10px] font-semibold text-[#3c4a42] uppercase">
-                      Link de Redirecionamento Externo (Opcional)
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-semibold text-[#3c4a42] uppercase">
+                        Link de Redirecionamento Externo (Opcional)
+                      </label>
+                      {item.customUrl && (
+                        <a
+                          href={item.customUrl.startsWith('http') ? item.customUrl : `https://${item.customUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-[#0051d5] hover:underline font-bold inline-flex items-center gap-0.5"
+                        >
+                          <span>Testar link</span>
+                          <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+                        </a>
+                      )}
+                    </div>
                     <input
-                      type="url"
+                      type="text"
                       value={item.customUrl || ''}
                       placeholder="Ex: https://pix.novaisp.com.br/login"
                       onChange={(e) =>
-                        handleUpdate(item.id, 'customUrl', e.target.value)
+                        handleUpdate(item.id, 'customUrl', e.target.value.trim())
                       }
                       className="w-full h-8 px-2.5 rounded-lg bg-[#eff4ff] text-xs font-mono text-[#0b1c30] mt-0.5 border border-slate-200 focus:outline-none focus:border-[#10b981]"
                     />
                     <p className="text-[10px] text-slate-400 mt-0.5">
-                      Se preenchido, redireciona o visitante diretamente para este site ao clicar no botão.
+                      Se preenchido, redireciona o visitante diretamente para este site ao clicar no botão na Bio.
                     </p>
                   </div>
                 </div>

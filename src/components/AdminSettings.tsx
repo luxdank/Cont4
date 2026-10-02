@@ -41,8 +41,11 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
 
   // Copy Bio URL
   const handleCopyUrl = () => {
-    const fullUrl = `https://${bioSlug}`;
-    navigator.clipboard.writeText(fullUrl).catch(() => {});
+    const appUrl =
+      typeof window !== 'undefined' && window.location.origin
+        ? window.location.origin
+        : `https://${bioSlug}`;
+    navigator.clipboard.writeText(appUrl).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -184,7 +187,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
       </div>
 
       {/* Quick Share Bar */}
-      <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#e5eeff] shadow-xs border border-slate-200/60">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3.5 rounded-xl bg-[#e5eeff] shadow-xs border border-slate-200/60 gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#006c49] shadow-xs shrink-0">
             <span className="material-symbols-outlined text-[20px]">share</span>
@@ -194,25 +197,39 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
               Seu link bio ativo
             </span>
             <span className="text-xs sm:text-sm text-[#0b1c30] font-semibold truncate font-mono">
-              {bioSlug}
+              {typeof window !== 'undefined' && window.location.host
+                ? window.location.host
+                : bioSlug}
             </span>
           </div>
         </div>
 
-        <button
-          onClick={handleCopyUrl}
-          type="button"
-          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center gap-1 ${
-            copied
-              ? 'bg-[#10b981] text-white'
-              : 'bg-white text-[#0b1c30] hover:text-[#006c49]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[16px]">
-            {copied ? 'done' : 'content_copy'}
-          </span>
-          <span>{copied ? 'Copiado!' : 'Copiar'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 rounded-full text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1 bg-white text-[#0b1c30] hover:text-[#006c49] border border-slate-200"
+          >
+            <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+            <span>Abrir Bio</span>
+          </a>
+
+          <button
+            onClick={handleCopyUrl}
+            type="button"
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1 ${
+              copied
+                ? 'bg-[#10b981] text-white'
+                : 'bg-[#10b981] text-white hover:bg-[#059669]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">
+              {copied ? 'done' : 'content_copy'}
+            </span>
+            <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+          </button>
+        </div>
       </div>
 
       {/* SEÇÃO 1: Dados da Empresa */}
@@ -236,6 +253,20 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             className="w-full h-10 px-3 rounded-lg bg-[#eff4ff] text-xs sm:text-sm text-[#0b1c30] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#10b981]/40 border border-transparent focus:border-[#10b981]"
+          />
+        </div>
+
+        {/* Link Personalizado da Bio */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-[#0b1c30]">
+            Link Personalizado da Bio (Domínio ou Redirecionamento)
+          </label>
+          <input
+            type="text"
+            value={bioSlug}
+            onChange={(e) => setBioSlug(e.target.value)}
+            placeholder="Ex: novaisp.com.br ou seulink.bio/novaisp"
+            className="w-full h-10 px-3 rounded-lg bg-[#eff4ff] text-xs sm:text-sm text-[#0b1c30] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#10b981]/40 border border-transparent focus:border-[#10b981] font-mono"
           />
         </div>
 

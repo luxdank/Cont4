@@ -160,27 +160,14 @@ export const BioHome: React.FC<BioHomeProps> = ({
                 item.id === 'link-4' ||
                 item.sectorId === 'pix' ||
                 item.title.toLowerCase().includes('pix');
-              const destinationUrl = item.customUrl || (isPix ? 'https://pix.novaisp.com.br/login' : null);
+              const rawUrl = item.customUrl || (isPix ? 'https://pix.novaisp.com.br/login' : null);
+              let destinationUrl = rawUrl ? rawUrl.trim() : null;
+              if (destinationUrl && !/^https?:\/\//i.test(destinationUrl)) {
+                destinationUrl = `https://${destinationUrl}`;
+              }
 
-              const handleClick = () => {
-                if (destinationUrl) {
-                  try {
-                    window.location.href = destinationUrl;
-                  } catch {
-                    window.open(destinationUrl, '_blank', 'noopener,noreferrer');
-                  }
-                  return;
-                }
-                onSelectOption(item, sector);
-              };
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={handleClick}
-                  type="button"
-                  className="group relative flex items-center justify-between p-3.5 pl-4 pr-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.985] text-left border border-slate-100/80 cursor-pointer w-full"
-                >
+              const content = (
+                <>
                   <div className="flex items-center gap-3.5 min-w-0">
                     {/* Leading Icon or Image */}
                     {item.imageUrl ? (
@@ -221,9 +208,34 @@ export const BioHome: React.FC<BioHomeProps> = ({
                     className={`w-8 h-8 rounded-full bg-[#eff4ff] flex items-center justify-center text-[#3c4a42] shrink-0 transition-all ${colorClasses.arrowHover}`}
                   >
                     <span className="material-symbols-outlined text-[18px]">
-                      arrow_forward
+                      {destinationUrl ? 'open_in_new' : 'arrow_forward'}
                     </span>
                   </div>
+                </>
+              );
+
+              if (destinationUrl) {
+                return (
+                  <a
+                    key={item.id}
+                    href={destinationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative flex items-center justify-between p-3.5 pl-4 pr-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.985] text-left border border-slate-100/80 cursor-pointer w-full no-underline"
+                  >
+                    {content}
+                  </a>
+                );
+              }
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onSelectOption(item, sector)}
+                  type="button"
+                  className="group relative flex items-center justify-between p-3.5 pl-4 pr-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.985] text-left border border-slate-100/80 cursor-pointer w-full"
+                >
+                  {content}
                 </button>
               );
             })}

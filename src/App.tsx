@@ -95,14 +95,16 @@ export default function App() {
       link.id === 'link-4' ||
       link.sectorId === 'pix' ||
       link.title.toLowerCase().includes('pix');
-    const destinationUrl =
-      link.customUrl || (isPix ? 'https://pix.novaisp.com.br/login' : null);
+    const rawUrl = link.customUrl || (isPix ? 'https://pix.novaisp.com.br/login' : null);
+    let destinationUrl = rawUrl?.trim() || null;
+    if (destinationUrl && !/^https?:\/\//i.test(destinationUrl)) {
+      destinationUrl = `https://${destinationUrl}`;
+    }
 
     if (destinationUrl) {
-      try {
+      const win = window.open(destinationUrl, '_blank', 'noopener,noreferrer');
+      if (!win || win.closed || typeof win.closed === 'undefined') {
         window.location.href = destinationUrl;
-      } catch {
-        window.open(destinationUrl, '_blank', 'noopener,noreferrer');
       }
       return;
     }
