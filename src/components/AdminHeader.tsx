@@ -17,6 +17,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onViewBio, onLo
           <h1 className="font-display font-semibold text-lg text-[#0b1c30] truncate max-w-[200px] sm:max-w-none">
             {title}
           </h1>
+          <div className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[#006c49] text-[11px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Firestore</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-2.5">

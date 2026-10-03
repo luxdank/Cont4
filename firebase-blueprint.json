@@ -1,0 +1,100 @@
+{
+  "entities": {
+    "CompanyConfig": {
+      "title": "CompanyConfig",
+      "description": "Configuration and branding settings for the Nova ISP bio link page",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "bioHeadline": { "type": "string", "maxLength": 200 },
+        "bioSubtitle": { "type": "string", "maxLength": 300 },
+        "logoUrl": { "type": "string", "maxLength": 100000 },
+        "verified": { "type": "boolean" },
+        "onlineStatus": { "type": "boolean" },
+        "onlineLabel": { "type": "string", "maxLength": 50 },
+        "primaryColor": { "type": "string", "maxLength": 30 },
+        "bioSlug": { "type": "string", "maxLength": 100 },
+        "googleScriptUrl": { "type": "string", "maxLength": 500 },
+        "sheetsConnected": { "type": "boolean" },
+        "detectedOrigin": { "type": "string", "maxLength": 100 },
+        "securityNoticeText": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["name", "bioHeadline", "primaryColor"]
+    },
+    "WhatsAppSector": {
+      "title": "WhatsAppSector",
+      "description": "Department sector and WhatsApp contact information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 100 },
+        "icon": { "type": "string", "maxLength": 50 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "initialMessage": { "type": "string", "maxLength": 500 },
+        "isOnline": { "type": "boolean" },
+        "responseTime": { "type": "string", "maxLength": 50 },
+        "colorType": { "type": "string", "enum": ["primary", "secondary", "neutral"] }
+      },
+      "required": ["id", "name", "phone", "initialMessage"]
+    },
+    "BioLinkItem": {
+      "title": "BioLinkItem",
+      "description": "Interactive action button displayed on the bio page",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 120 },
+        "subtitle": { "type": "string", "maxLength": 200 },
+        "sectorId": { "type": "string", "maxLength": 64 },
+        "responseTime": { "type": "string", "maxLength": 50 },
+        "badgeIcon": { "type": "string", "maxLength": 50 },
+        "icon": { "type": "string", "maxLength": 50 },
+        "imageUrl": { "type": "string", "maxLength": 100000 },
+        "colorType": { "type": "string", "enum": ["primary", "secondary", "neutral"] },
+        "customMessage": { "type": "string", "maxLength": 500 },
+        "customUrl": { "type": "string", "maxLength": 500 },
+        "active": { "type": "boolean" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "title", "sectorId", "active", "order"]
+    },
+    "LeadRecord": {
+      "title": "LeadRecord",
+      "description": "Captured lead registration from bio lead generation form",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "timestamp": { "type": "string", "maxLength": 50 },
+        "fullDate": { "type": "string", "maxLength": 60 },
+        "name": { "type": "string", "maxLength": 120 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "sector": { "type": "string", "maxLength": 100 },
+        "sectorId": { "type": "string", "maxLength": 64 },
+        "origin": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["redirected", "pending", "contacted"] },
+        "initials": { "type": "string", "maxLength": 10 },
+        "issue": { "type": "string", "maxLength": 300 },
+        "cep": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["id", "name", "phone", "sector", "status"]
+    }
+  },
+  "firestore": {
+    "/config/{configId}": {
+      "schema": "CompanyConfig",
+      "description": "Company branding, headline, avatar, and integration settings"
+    },
+    "/sectors/{sectorId}": {
+      "schema": "WhatsAppSector",
+      "description": "WhatsApp contact sectors and routing details"
+    },
+    "/links/{linkId}": {
+      "schema": "BioLinkItem",
+      "description": "Configurable bio buttons and links"
+    },
+    "/leads/{leadId}": {
+      "schema": "LeadRecord",
+      "description": "Captured leads submitted by visitors"
+    }
+  }
+}

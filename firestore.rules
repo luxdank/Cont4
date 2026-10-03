@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default-deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidCompanyConfig(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.bioHeadline is string && data.bioHeadline.size() <= 200
+        && data.primaryColor is string && data.primaryColor.size() <= 30;
+    }
+
+    function isValidSector(data) {
+      return data.id is string && isValidId(data.id)
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.phone is string && data.phone.size() <= 30
+        && data.initialMessage is string && data.initialMessage.size() <= 500;
+    }
+
+    function isValidBioLink(data) {
+      return data.id is string && isValidId(data.id)
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.sectorId is string && isValidId(data.sectorId)
+        && data.active is bool
+        && data.order is number;
+    }
+
+    function isValidLead(data) {
+      return data.id is string && isValidId(data.id)
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 120
+        && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 30
+        && data.sector is string && data.sector.size() <= 100
+        && data.status is string && (data.status == 'redirected' || data.status == 'pending' || data.status == 'contacted');
+    }
+
+    // Company Configuration
+    match /config/{configId} {
+      allow read: if true;
+      allow write: if isValidId(configId) && isValidCompanyConfig(incoming());
+    }
+
+    // WhatsApp Sectors
+    match /sectors/{sectorId} {
+      allow read: if true;
+      allow write: if isValidId(sectorId) && isValidSector(incoming());
+    }
+
+    // Bio Links
+    match /links/{linkId} {
+      allow read: if true;
+      allow write: if isValidId(linkId) && isValidBioLink(incoming());
+    }
+
+    // Captured Leads
+    match /leads/{leadId} {
+      allow read: if true;
+      allow create: if isValidId(leadId) && isValidLead(incoming());
+      allow update, delete: if isValidId(leadId);
+    }
+  }
+}

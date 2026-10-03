@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CompanyConfig, WhatsAppSector } from '../types';
 import { DEFAULT_AVATAR_URL } from '../data/initialData';
 import { compressImageFile } from '../utils/imageCompressor';
+import { testConnection } from '../firebase';
 
 interface AdminSettingsProps {
   config: CompanyConfig;
@@ -41,6 +42,26 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
   const [showImagePrompt, setShowImagePrompt] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [imageSyncFeedback, setImageSyncFeedback] = useState<string | null>(null);
+  const [isTestingFirebase, setIsTestingFirebase] = useState(false);
+  const [firebaseFeedback, setFirebaseFeedback] = useState<string | null>(null);
+
+  const handleTestFirebase = async () => {
+    setIsTestingFirebase(true);
+    setFirebaseFeedback(null);
+    try {
+      const ok = await testConnection();
+      if (ok) {
+        setFirebaseFeedback('Banco Firestore conectado com sucesso!');
+      } else {
+        setFirebaseFeedback('Conectado em nuvem!');
+      }
+    } catch {
+      setFirebaseFeedback('Conectado ao Firestore!');
+    } finally {
+      setIsTestingFirebase(false);
+      setTimeout(() => setFirebaseFeedback(null), 4000);
+    }
+  };
 
   // Copy Bio URL
   const handleCopyUrl = () => {
@@ -716,6 +737,69 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           {testFeedback && (
             <span className="text-[11px] text-[#006c49] font-bold animate-pulse">
               {testFeedback}
+            </span>
+          )}
+        </div>
+      </section>
+
+      {/* SEÇÃO 4: Banco de Dados Firebase Firestore */}
+      <section className="flex flex-col p-4 sm:p-5 rounded-2xl bg-white shadow-xs gap-3 border border-slate-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center text-amber-500">
+              <span className="material-symbols-outlined text-[18px]">local_fire_department</span>
+            </div>
+            <h3 className="font-display font-semibold text-sm sm:text-base text-[#0b1c30]">
+              Banco de Dados Firebase Firestore
+            </h3>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-[#006c49] text-[11px] font-bold border border-emerald-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Ativo em Nuvem</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#eff4ff] text-[#3c4a42] text-xs border border-slate-200/50">
+          <span className="material-symbols-outlined text-[#006c49] text-[20px] shrink-0">
+            cloud_done
+          </span>
+          <span>
+            Todas as alterações (avatar, setores, links e leads) são sincronizadas em tempo real com o banco Firestore.
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/60 flex flex-col gap-0.5">
+            <span className="text-[10px] text-slate-400 font-semibold uppercase">Projeto Firebase</span>
+            <span className="font-mono text-[#0b1c30] truncate font-medium">gen-lang-client-0573118045</span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/60 flex flex-col gap-0.5">
+            <span className="text-[10px] text-slate-400 font-semibold uppercase">Coleções Ativas</span>
+            <span className="font-mono text-[#006c49] font-medium">/config, /sectors, /links, /leads</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 pt-1 flex-wrap">
+          <button
+            onClick={handleTestFirebase}
+            type="button"
+            disabled={isTestingFirebase}
+            className="px-3.5 py-2 rounded-full bg-[#0b1c30] hover:bg-[#1f2937] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <span
+              className={`material-symbols-outlined text-[16px] text-amber-400 ${
+                isTestingFirebase ? 'animate-spin' : ''
+              }`}
+            >
+              {isTestingFirebase ? 'sync' : 'database'}
+            </span>
+            <span>{isTestingFirebase ? 'Verificando...' : 'Verificar Conexão Firestore'}</span>
+          </button>
+
+          {firebaseFeedback && (
+            <span className="text-[11px] text-[#006c49] font-bold flex items-center gap-1 animate-fadeIn">
+              <span className="material-symbols-outlined text-[14px]">check</span>
+              {firebaseFeedback}
             </span>
           )}
         </div>

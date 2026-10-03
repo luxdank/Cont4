@@ -23,6 +23,18 @@ import {
   loadLeads,
   saveLeads,
 } from './utils/storage';
+import {
+  subscribeToCompanyConfig,
+  saveCompanyConfigToFirestore,
+  subscribeToSectors,
+  saveSectorsToFirestore,
+  subscribeToBioLinks,
+  saveBioLinksToFirestore,
+  subscribeToLeads,
+  addLeadToFirestore,
+  deleteLeadFromFirestore,
+  initializeFirestoreDatabase,
+} from './utils/firestoreService';
 
 import { AdminHeader } from './components/AdminHeader';
 import { AdminNavBar } from './components/AdminNavBar';
@@ -67,8 +79,39 @@ export default function App() {
   const [selectedLink, setSelectedLink] = useState<BioLinkItem | null>(null);
   const [selectedSector, setSelectedSector] = useState<WhatsAppSector | null>(null);
 
-  // Real-time synchronization across tabs and state
+  // Real-time synchronization with Firebase Firestore & localStorage
   React.useEffect(() => {
+    // 1. Initialize and seed Firestore database
+    initializeFirestoreDatabase().catch((err) => {
+      console.warn('Firestore initialization notice:', err);
+    });
+
+    // 2. Real-time Firestore subscriptions
+    const unsubConfig = subscribeToCompanyConfig((remoteConfig) => {
+      setConfig(remoteConfig);
+      saveCompanyConfig(remoteConfig);
+    });
+
+    const unsubSectors = subscribeToSectors((remoteSectors) => {
+      if (remoteSectors && remoteSectors.length > 0) {
+        setSectors(remoteSectors);
+        saveSectors(remoteSectors);
+      }
+    });
+
+    const unsubLinks = subscribeToBioLinks((remoteLinks) => {
+      if (remoteLinks && remoteLinks.length > 0) {
+        setLinks(remoteLinks);
+        saveBioLinks(remoteLinks);
+      }
+    });
+
+    const unsubLeads = subscribeToLeads((remoteLeads) => {
+      setLeads(remoteLeads);
+      saveLeads(remoteLeads);
+    });
+
+    // 3. Cross-tab local storage events
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'smartlink_company_config' && e.newValue) {
         try {
@@ -85,32 +128,48 @@ export default function App() {
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('smartlink_config_updated', handleCustomConfigSync);
+
     return () => {
+      unsubConfig();
+      unsubSectors();
+      unsubLinks();
+      unsubLeads();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('smartlink_config_updated', handleCustomConfigSync);
     };
   }, []);
 
-  // Sync to localStorage
+  // Sync to Firestore and localStorage
   const handleUpdateConfig = (newConfig: CompanyConfig) => {
     setConfig(newConfig);
     saveCompanyConfig(newConfig);
+    saveCompanyConfigToFirestore(newConfig).catch(console.error);
   };
 
   const handleUpdateSectors = (newSectors: WhatsAppSector[]) => {
     setSectors(newSectors);
     saveSectors(newSectors);
+    saveSectorsToFirestore(newSectors).catch(console.error);
   };
 
   const handleUpdateLinks = (newLinks: BioLinkItem[]) => {
     setLinks(newLinks);
     saveBioLinks(newLinks);
+    saveBioLinksToFirestore(newLinks).catch(console.error);
   };
 
   const handleAddLead = (newLead: LeadRecord) => {
     const updated = [newLead, ...leads];
     setLeads(updated);
     saveLeads(updated);
+    addLeadToFirestore(newLead).catch(console.error);
+  };
+
+  const handleDeleteLead = (leadId: string) => {
+    const updated = leads.filter((l) => l.id !== leadId);
+    setLeads(updated);
+    saveLeads(updated);
+    deleteLeadFromFirestore(leadId).catch(console.error);
   };
 
   // Flow from Bio Screen 1 -> Screen 2
