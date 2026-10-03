@@ -214,20 +214,6 @@ export const BioHome: React.FC<BioHomeProps> = ({
                 </>
               );
 
-              if (destinationUrl) {
-                return (
-                  <a
-                    key={item.id}
-                    href={destinationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group relative flex items-center justify-between p-3.5 pl-4 pr-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.985] text-left border border-slate-100/80 cursor-pointer w-full no-underline"
-                  >
-                    {content}
-                  </a>
-                );
-              }
-
               return (
                 <button
                   key={item.id}

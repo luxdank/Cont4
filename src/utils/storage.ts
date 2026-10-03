@@ -1,4 +1,4 @@
-import { CompanyConfig, WhatsAppSector, BioLinkItem, LeadRecord } from '../types';
+import { CompanyConfig, WhatsAppSector, BioLinkItem, LeadRecord, PixClickRecord } from '../types';
 import {
   INITIAL_COMPANY_CONFIG,
   INITIAL_SECTORS,
@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   SECTORS: 'smartlink_sectors',
   LINKS: 'smartlink_bio_links',
   LEADS: 'smartlink_leads_records',
+  PIX_CLICKS: 'smartlink_pix_clicks_records',
 };
 
 export const loadCompanyConfig = (): CompanyConfig => {
@@ -210,5 +211,38 @@ export const clearAllLeads = () => {
     localStorage.setItem('smartlink_bio_visits', '0');
   } catch (e) {
     console.error('Failed to clear leads', e);
+  }
+};
+
+export const loadPixClicks = (): PixClickRecord[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.PIX_CLICKS);
+    if (saved) return JSON.parse(saved);
+  } catch (e) {
+    console.error('Failed to load pix clicks', e);
+  }
+  return [];
+};
+
+export const savePixClicks = (clicks: PixClickRecord[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PIX_CLICKS, JSON.stringify(clicks));
+  } catch (e) {
+    console.error('Failed to save pix clicks', e);
+  }
+};
+
+export const recordLocalPixClick = (record: PixClickRecord): PixClickRecord[] => {
+  const current = loadPixClicks();
+  const updated = [record, ...current];
+  savePixClicks(updated);
+  return updated;
+};
+
+export const clearPixClicks = () => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PIX_CLICKS, JSON.stringify([]));
+  } catch (e) {
+    console.error('Failed to clear pix clicks', e);
   }
 };

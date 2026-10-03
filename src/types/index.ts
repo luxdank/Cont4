@@ -56,6 +56,16 @@ export interface LeadRecord {
   cep?: string;
 }
 
+export interface PixClickRecord {
+  id: string;
+  timestamp: string;
+  fullDate: string;
+  linkId: string;
+  linkTitle: string;
+  destinationUrl: string;
+  origin?: string;
+}
+
 export type ActiveTab = 'links' | 'analytics' | 'contacts' | 'settings';
 export type AppMode = 'bio' | 'admin';
 export type BioStep = 'step1_select' | 'step2_lead';

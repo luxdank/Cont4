@@ -9,6 +9,7 @@ import {
   WhatsAppSector,
   BioLinkItem,
   LeadRecord,
+  PixClickRecord,
   ActiveTab,
   AppMode,
   BioStep,
@@ -22,6 +23,10 @@ import {
   saveBioLinks,
   loadLeads,
   saveLeads,
+  loadPixClicks,
+  savePixClicks,
+  recordLocalPixClick,
+  clearPixClicks,
 } from './utils/storage';
 import {
   subscribeToCompanyConfig,
@@ -33,6 +38,9 @@ import {
   subscribeToLeads,
   addLeadToFirestore,
   deleteLeadFromFirestore,
+  subscribeToPixClicks,
+  recordPixClickInFirestore,
+  deletePixClickFromFirestore,
   initializeFirestoreDatabase,
 } from './utils/firestoreService';
 
@@ -54,6 +62,7 @@ export default function App() {
   const [sectors, setSectors] = useState<WhatsAppSector[]>(loadSectors);
   const [links, setLinks] = useState<BioLinkItem[]>(loadBioLinks);
   const [leads, setLeads] = useState<LeadRecord[]>(loadLeads);
+  const [pixClicks, setPixClicks] = useState<PixClickRecord[]>(loadPixClicks);
 
   // Authentication state
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -111,6 +120,11 @@ export default function App() {
       saveLeads(remoteLeads);
     });
 
+    const unsubPix = subscribeToPixClicks((remoteClicks) => {
+      setPixClicks(remoteClicks);
+      savePixClicks(remoteClicks);
+    });
+
     // 3. Cross-tab local storage events
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'smartlink_company_config' && e.newValue) {
@@ -134,6 +148,7 @@ export default function App() {
       unsubSectors();
       unsubLinks();
       unsubLeads();
+      unsubPix();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('smartlink_config_updated', handleCustomConfigSync);
     };
@@ -172,16 +187,70 @@ export default function App() {
     deleteLeadFromFirestore(leadId).catch(console.error);
   };
 
+  const handleClearPixClicks = () => {
+    setPixClicks([]);
+    clearPixClicks();
+    pixClicks.forEach((c) => deletePixClickFromFirestore(c.id).catch(console.error));
+  };
+
   // Flow from Bio Screen 1 -> Screen 2
   const handleBioSelectOption = (link: BioLinkItem, sector?: WhatsAppSector) => {
     const isPix =
       link.id === 'link-4' ||
       link.sectorId === 'pix' ||
-      link.title.toLowerCase().includes('pix');
+      link.title.toLowerCase().includes('pix') ||
+      link.subtitle?.toLowerCase().includes('pix');
+
     const rawUrl = link.customUrl || (isPix ? 'https://pix.novaisp.com.br/login' : null);
     let destinationUrl = rawUrl?.trim() || null;
     if (destinationUrl && !/^https?:\/\//i.test(destinationUrl)) {
       destinationUrl = `https://${destinationUrl}`;
+    }
+
+    // Contabiliza clique no PIX
+    if (isPix) {
+      const now = new Date();
+      const pixRecord: PixClickRecord = {
+        id: `pix-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        timestamp: now.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+        fullDate: now.toISOString(),
+        linkId: link.id,
+        linkTitle: link.title,
+        destinationUrl: destinationUrl || 'https://pix.novaisp.com.br/login',
+        origin: config.detectedOrigin || 'Instagram Bio',
+      };
+
+      // 1. Salva localmente
+      const updated = recordLocalPixClick(pixRecord);
+      setPixClicks(updated);
+
+      // 2. Persiste no Firestore em nuvem
+      recordPixClickInFirestore(pixRecord).catch(console.error);
+
+      // 3. Dispara evento para o Google Sheets (se configurado)
+      if (config.googleScriptUrl) {
+        try {
+          fetch(config.googleScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'pix_click',
+              timestamp: pixRecord.timestamp,
+              fullDate: pixRecord.fullDate,
+              lead: {
+                id: pixRecord.id,
+                name: 'Clique Direto (PIX)',
+                phone: '-',
+                sector: 'Pague com PIX',
+                origin: pixRecord.origin,
+                timestamp: pixRecord.timestamp,
+                status: 'redirected',
+              },
+            }),
+          }).catch(() => {});
+        } catch {}
+      }
     }
 
     if (destinationUrl) {
@@ -342,6 +411,8 @@ export default function App() {
               <AdminAnalytics
                 leads={leads}
                 sectors={sectors}
+                pixClicks={pixClicks}
+                onClearPixClicks={handleClearPixClicks}
                 onViewBio={() => {
                   setMode('bio');
                   setBioStep('step1_select');

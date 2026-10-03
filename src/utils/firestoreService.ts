@@ -8,7 +8,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { CompanyConfig, WhatsAppSector, BioLinkItem, LeadRecord } from '../types';
+import { CompanyConfig, WhatsAppSector, BioLinkItem, LeadRecord, PixClickRecord } from '../types';
 import {
   INITIAL_COMPANY_CONFIG,
   INITIAL_SECTORS,
@@ -19,6 +19,7 @@ const CONFIG_DOC_PATH = 'config/main';
 const SECTORS_COLLECTION = 'sectors';
 const LINKS_COLLECTION = 'links';
 const LEADS_COLLECTION = 'leads';
+const PIX_CLICKS_COLLECTION = 'pixClicks';
 
 /**
  * Clean object of any undefined fields for Firestore
@@ -225,5 +226,49 @@ export async function deleteLeadFromFirestore(leadId: string): Promise<void> {
     await deleteDoc(doc(db, LEADS_COLLECTION, leadId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `${LEADS_COLLECTION}/${leadId}`);
+  }
+}
+
+/**
+ * Real-time subscription to PIX clicks
+ */
+export function subscribeToPixClicks(
+  onUpdate: (clicks: PixClickRecord[]) => void
+): () => void {
+  const colRef = collection(db, PIX_CLICKS_COLLECTION);
+
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      const clicks = snapshot.docs.map((d) => d.data() as PixClickRecord);
+      // Sort newest first
+      clicks.sort((a, b) => (b.fullDate || '').localeCompare(a.fullDate || ''));
+      onUpdate(clicks);
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.GET, PIX_CLICKS_COLLECTION);
+    }
+  );
+}
+
+/**
+ * Record a PIX click event in Firestore
+ */
+export async function recordPixClickInFirestore(click: PixClickRecord): Promise<void> {
+  try {
+    await setDoc(doc(db, PIX_CLICKS_COLLECTION, click.id), sanitizeForFirestore(click));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, `${PIX_CLICKS_COLLECTION}/${click.id}`);
+  }
+}
+
+/**
+ * Delete a PIX click event from Firestore
+ */
+export async function deletePixClickFromFirestore(clickId: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, PIX_CLICKS_COLLECTION, clickId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${PIX_CLICKS_COLLECTION}/${clickId}`);
   }
 }

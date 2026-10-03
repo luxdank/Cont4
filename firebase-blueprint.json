@@ -77,6 +77,21 @@
         "cep": { "type": "string", "maxLength": 30 }
       },
       "required": ["id", "name", "phone", "sector", "status"]
+    },
+    "PixClickRecord": {
+      "title": "PixClickRecord",
+      "description": "Click event recorded when a user clicks the Pague com o pix option",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "timestamp": { "type": "string", "maxLength": 60 },
+        "fullDate": { "type": "string", "maxLength": 60 },
+        "linkId": { "type": "string", "maxLength": 64 },
+        "linkTitle": { "type": "string", "maxLength": 100 },
+        "destinationUrl": { "type": "string", "maxLength": 500 },
+        "origin": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "timestamp", "linkId", "linkTitle"]
     }
   },
   "firestore": {
@@ -95,6 +110,10 @@
     "/leads/{leadId}": {
       "schema": "LeadRecord",
       "description": "Captured leads submitted by visitors"
+    },
+    "/pixClicks/{clickId}": {
+      "schema": "PixClickRecord",
+      "description": "Logged click events for PIX payments"
     }
   }
 }
