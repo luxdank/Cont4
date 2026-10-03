@@ -92,6 +92,24 @@
         "origin": { "type": "string", "maxLength": 100 }
       },
       "required": ["id", "timestamp", "linkId", "linkTitle"]
+    },
+    "LinkClickRecord": {
+      "title": "LinkClickRecord",
+      "description": "Click event logged when a visitor clicks any button/link on the bio page",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "timestamp": { "type": "string", "maxLength": 60 },
+        "fullDate": { "type": "string", "maxLength": 60 },
+        "linkId": { "type": "string", "maxLength": 64 },
+        "linkTitle": { "type": "string", "maxLength": 120 },
+        "sectorId": { "type": "string", "maxLength": 64 },
+        "sectorName": { "type": "string", "maxLength": 100 },
+        "destinationUrl": { "type": "string", "maxLength": 500 },
+        "origin": { "type": "string", "maxLength": 100 },
+        "isDirectLink": { "type": "boolean" }
+      },
+      "required": ["id", "timestamp", "linkId", "linkTitle"]
     }
   },
   "firestore": {
@@ -114,6 +132,10 @@
     "/pixClicks/{clickId}": {
       "schema": "PixClickRecord",
       "description": "Logged click events for PIX payments"
+    },
+    "/linkClicks/{clickId}": {
+      "schema": "LinkClickRecord",
+      "description": "Logged click events for all bio buttons and links"
     }
   }
 }

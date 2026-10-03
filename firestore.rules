@@ -54,6 +54,12 @@ service cloud.firestore {
         && data.linkTitle is string && data.linkTitle.size() > 0 && data.linkTitle.size() <= 100;
     }
 
+    function isValidLinkClick(data) {
+      return data.id is string && isValidId(data.id)
+        && data.linkId is string && isValidId(data.linkId)
+        && data.linkTitle is string && data.linkTitle.size() > 0 && data.linkTitle.size() <= 120;
+    }
+
     // Company Configuration
     match /config/{configId} {
       allow read: if true;
@@ -63,13 +69,15 @@ service cloud.firestore {
     // WhatsApp Sectors
     match /sectors/{sectorId} {
       allow read: if true;
-      allow write: if isValidId(sectorId) && isValidSector(incoming());
+      allow create, update: if isValidId(sectorId) && isValidSector(incoming());
+      allow delete: if isValidId(sectorId);
     }
 
-    // Bio Links
+    // Bio Links (Real-time synced)
     match /links/{linkId} {
       allow read: if true;
-      allow write: if isValidId(linkId) && isValidBioLink(incoming());
+      allow create, update: if isValidId(linkId) && isValidBioLink(incoming());
+      allow delete: if isValidId(linkId);
     }
 
     // Captured Leads
@@ -83,6 +91,13 @@ service cloud.firestore {
     match /pixClicks/{clickId} {
       allow read: if true;
       allow create: if isValidId(clickId) && isValidPixClick(incoming());
+      allow delete: if isValidId(clickId);
+    }
+
+    // Logged clicks on all bio links
+    match /linkClicks/{clickId} {
+      allow read: if true;
+      allow create: if isValidId(clickId) && isValidLinkClick(incoming());
       allow delete: if isValidId(clickId);
     }
   }

@@ -10,6 +10,7 @@ import {
   BioLinkItem,
   LeadRecord,
   PixClickRecord,
+  LinkClickRecord,
   ActiveTab,
   AppMode,
   BioStep,
@@ -27,6 +28,10 @@ import {
   savePixClicks,
   recordLocalPixClick,
   clearPixClicks,
+  loadLinkClicks,
+  saveLinkClicks,
+  recordLocalLinkClick,
+  clearLinkClicks,
 } from './utils/storage';
 import {
   subscribeToCompanyConfig,
@@ -41,6 +46,9 @@ import {
   subscribeToPixClicks,
   recordPixClickInFirestore,
   deletePixClickFromFirestore,
+  subscribeToLinkClicks,
+  recordLinkClickInFirestore,
+  deleteLinkClickFromFirestore,
   initializeFirestoreDatabase,
 } from './utils/firestoreService';
 
@@ -63,6 +71,7 @@ export default function App() {
   const [links, setLinks] = useState<BioLinkItem[]>(loadBioLinks);
   const [leads, setLeads] = useState<LeadRecord[]>(loadLeads);
   const [pixClicks, setPixClicks] = useState<PixClickRecord[]>(loadPixClicks);
+  const [linkClicks, setLinkClicks] = useState<LinkClickRecord[]>(loadLinkClicks);
 
   // Authentication state
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -125,6 +134,11 @@ export default function App() {
       savePixClicks(remoteClicks);
     });
 
+    const unsubLinkClicks = subscribeToLinkClicks((remoteClicks) => {
+      setLinkClicks(remoteClicks);
+      saveLinkClicks(remoteClicks);
+    });
+
     // 3. Cross-tab local storage events
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'smartlink_company_config' && e.newValue) {
@@ -149,6 +163,7 @@ export default function App() {
       unsubLinks();
       unsubLeads();
       unsubPix();
+      unsubLinkClicks();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('smartlink_config_updated', handleCustomConfigSync);
     };
@@ -193,6 +208,12 @@ export default function App() {
     pixClicks.forEach((c) => deletePixClickFromFirestore(c.id).catch(console.error));
   };
 
+  const handleClearLinkClicks = () => {
+    setLinkClicks([]);
+    clearLinkClicks();
+    linkClicks.forEach((c) => deleteLinkClickFromFirestore(c.id).catch(console.error));
+  };
+
   // Flow from Bio Screen 1 -> Screen 2
   const handleBioSelectOption = (link: BioLinkItem, sector?: WhatsAppSector) => {
     const isPix =
@@ -207,27 +228,46 @@ export default function App() {
       destinationUrl = `https://${destinationUrl}`;
     }
 
-    // Contabiliza clique no PIX
+    const now = new Date();
+    const formattedTimestamp = now.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const fullDateIso = now.toISOString();
+
+    // 1. Contabiliza o clique em QUALQUER link da Bio (Sincronizado no Firestore)
+    const linkRecord: LinkClickRecord = {
+      id: `click-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: formattedTimestamp,
+      fullDate: fullDateIso,
+      linkId: link.id,
+      linkTitle: link.title,
+      sectorId: link.sectorId,
+      sectorName: sector?.name || link.sectorId,
+      destinationUrl: destinationUrl || '',
+      origin: config.detectedOrigin || 'Instagram Bio',
+      isDirectLink: Boolean(destinationUrl),
+    };
+
+    const updatedLinkClicks = recordLocalLinkClick(linkRecord);
+    setLinkClicks(updatedLinkClicks);
+    recordLinkClickInFirestore(linkRecord).catch(console.error);
+
+    // 2. Contabiliza clique no PIX (se for o link do PIX)
     if (isPix) {
-      const now = new Date();
       const pixRecord: PixClickRecord = {
         id: `pix-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        timestamp: now.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
-        fullDate: now.toISOString(),
+        timestamp: formattedTimestamp,
+        fullDate: fullDateIso,
         linkId: link.id,
         linkTitle: link.title,
         destinationUrl: destinationUrl || 'https://pix.novaisp.com.br/login',
         origin: config.detectedOrigin || 'Instagram Bio',
       };
 
-      // 1. Salva localmente
+      // Salva localmente e no Firestore
       const updated = recordLocalPixClick(pixRecord);
       setPixClicks(updated);
-
-      // 2. Persiste no Firestore em nuvem
       recordPixClickInFirestore(pixRecord).catch(console.error);
 
-      // 3. Dispara evento para o Google Sheets (se configurado)
+      // Dispara evento para o Google Sheets (se configurado)
       if (config.googleScriptUrl) {
         try {
           fetch(config.googleScriptUrl, {
@@ -411,8 +451,11 @@ export default function App() {
               <AdminAnalytics
                 leads={leads}
                 sectors={sectors}
+                links={links}
                 pixClicks={pixClicks}
+                linkClicks={linkClicks}
                 onClearPixClicks={handleClearPixClicks}
+                onClearLinkClicks={handleClearLinkClicks}
                 onViewBio={() => {
                   setMode('bio');
                   setBioStep('step1_select');

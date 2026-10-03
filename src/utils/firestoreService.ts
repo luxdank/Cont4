@@ -8,7 +8,14 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { CompanyConfig, WhatsAppSector, BioLinkItem, LeadRecord, PixClickRecord } from '../types';
+import {
+  CompanyConfig,
+  WhatsAppSector,
+  BioLinkItem,
+  LeadRecord,
+  PixClickRecord,
+  LinkClickRecord,
+} from '../types';
 import {
   INITIAL_COMPANY_CONFIG,
   INITIAL_SECTORS,
@@ -20,6 +27,7 @@ const SECTORS_COLLECTION = 'sectors';
 const LINKS_COLLECTION = 'links';
 const LEADS_COLLECTION = 'leads';
 const PIX_CLICKS_COLLECTION = 'pixClicks';
+const LINK_CLICKS_COLLECTION = 'linkClicks';
 
 /**
  * Clean object of any undefined fields for Firestore
@@ -177,11 +185,31 @@ export function subscribeToBioLinks(
  */
 export async function saveBioLinksToFirestore(links: BioLinkItem[]): Promise<void> {
   try {
+    const activeIds = new Set(links.map((l) => l.id));
+    // Fetch existing docs to delete any links removed in UI
+    const existingSnap = await getDocs(collection(db, LINKS_COLLECTION));
+    for (const d of existingSnap.docs) {
+      if (!activeIds.has(d.id)) {
+        await deleteDoc(d.ref);
+      }
+    }
+    // Save updated/new links
     for (const link of links) {
       await setDoc(doc(db, LINKS_COLLECTION, link.id), sanitizeForFirestore(link));
     }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, LINKS_COLLECTION);
+  }
+}
+
+/**
+ * Delete a single Bio Link from Firestore
+ */
+export async function deleteBioLinkFromFirestore(linkId: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, LINKS_COLLECTION, linkId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${LINKS_COLLECTION}/${linkId}`);
   }
 }
 
@@ -270,5 +298,49 @@ export async function deletePixClickFromFirestore(clickId: string): Promise<void
     await deleteDoc(doc(db, PIX_CLICKS_COLLECTION, clickId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `${PIX_CLICKS_COLLECTION}/${clickId}`);
+  }
+}
+
+/**
+ * Real-time subscription to ALL Bio Link clicks
+ */
+export function subscribeToLinkClicks(
+  onUpdate: (clicks: LinkClickRecord[]) => void
+): () => void {
+  const colRef = collection(db, LINK_CLICKS_COLLECTION);
+
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      const clicks = snapshot.docs.map((d) => d.data() as LinkClickRecord);
+      // Sort newest first
+      clicks.sort((a, b) => (b.fullDate || '').localeCompare(a.fullDate || ''));
+      onUpdate(clicks);
+    },
+    (error) => {
+      handleFirestoreError(error, OperationType.GET, LINK_CLICKS_COLLECTION);
+    }
+  );
+}
+
+/**
+ * Record a link click event in Firestore
+ */
+export async function recordLinkClickInFirestore(click: LinkClickRecord): Promise<void> {
+  try {
+    await setDoc(doc(db, LINK_CLICKS_COLLECTION, click.id), sanitizeForFirestore(click));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, `${LINK_CLICKS_COLLECTION}/${click.id}`);
+  }
+}
+
+/**
+ * Delete a link click event from Firestore
+ */
+export async function deleteLinkClickFromFirestore(clickId: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, LINK_CLICKS_COLLECTION, clickId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${LINK_CLICKS_COLLECTION}/${clickId}`);
   }
 }

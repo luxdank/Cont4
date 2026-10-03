@@ -19,6 +19,11 @@ export const AdminLinks: React.FC<AdminLinksProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savedToast, setSavedToast] = useState(false);
 
+  // Sync state when props change from Firestore
+  React.useEffect(() => {
+    setItems(links);
+  }, [links]);
+
   const handleToggleActive = (id: string) => {
     const updated = items.map((item) =>
       item.id === id ? { ...item, active: !item.active } : item
@@ -85,23 +90,30 @@ export const AdminLinks: React.FC<AdminLinksProps> = ({
   return (
     <div className="flex flex-col w-full max-w-lg mx-auto pb-32 pt-2 px-4 gap-4">
       {/* Header */}
-      <div className="flex items-center justify-between mt-1">
-        <div>
-          <h2 className="font-display font-bold text-xl text-[#0b1c30]">
-            Botões da Bio
-          </h2>
-          <p className="text-xs text-[#3c4a42]">
-            Personalize as opções que os clientes vêem ao acessar seu link.
-          </p>
+      <div className="flex flex-col gap-2 mt-1">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display font-bold text-xl text-[#0b1c30]">
+              Botões da Bio
+            </h2>
+            <p className="text-xs text-[#3c4a42]">
+              Personalize as opções que os clientes vêem ao acessar seu link.
+            </p>
+          </div>
+          <button
+            onClick={handleAddNew}
+            type="button"
+            className="px-3 py-1.5 rounded-full bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold flex items-center gap-1 active:scale-95 shadow-xs transition-all"
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            <span>Criar Opção</span>
+          </button>
         </div>
-        <button
-          onClick={handleAddNew}
-          type="button"
-          className="px-3 py-1.5 rounded-full bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold flex items-center gap-1 active:scale-95 shadow-xs transition-all"
-        >
-          <span className="material-symbols-outlined text-[16px]">add</span>
-          <span>Criar Opção</span>
-        </button>
+
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-[#006c49] text-[11px] font-semibold border border-emerald-200/80 w-fit">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Links sincronizados com Firebase Firestore em tempo real</span>
+        </div>
       </div>
 
       {/* List */}

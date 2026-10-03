@@ -1,4 +1,11 @@
-import { CompanyConfig, WhatsAppSector, BioLinkItem, LeadRecord, PixClickRecord } from '../types';
+import {
+  CompanyConfig,
+  WhatsAppSector,
+  BioLinkItem,
+  LeadRecord,
+  PixClickRecord,
+  LinkClickRecord,
+} from '../types';
 import {
   INITIAL_COMPANY_CONFIG,
   INITIAL_SECTORS,
@@ -12,6 +19,7 @@ export const STORAGE_KEYS = {
   LINKS: 'smartlink_bio_links',
   LEADS: 'smartlink_leads_records',
   PIX_CLICKS: 'smartlink_pix_clicks_records',
+  LINK_CLICKS: 'smartlink_all_link_clicks_records',
 };
 
 export const loadCompanyConfig = (): CompanyConfig => {
@@ -244,5 +252,38 @@ export const clearPixClicks = () => {
     localStorage.setItem(STORAGE_KEYS.PIX_CLICKS, JSON.stringify([]));
   } catch (e) {
     console.error('Failed to clear pix clicks', e);
+  }
+};
+
+export const loadLinkClicks = (): LinkClickRecord[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.LINK_CLICKS);
+    if (saved) return JSON.parse(saved);
+  } catch (e) {
+    console.error('Failed to load link clicks', e);
+  }
+  return [];
+};
+
+export const saveLinkClicks = (clicks: LinkClickRecord[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LINK_CLICKS, JSON.stringify(clicks));
+  } catch (e) {
+    console.error('Failed to save link clicks', e);
+  }
+};
+
+export const recordLocalLinkClick = (record: LinkClickRecord): LinkClickRecord[] => {
+  const current = loadLinkClicks();
+  const updated = [record, ...current];
+  saveLinkClicks(updated);
+  return updated;
+};
+
+export const clearLinkClicks = () => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LINK_CLICKS, JSON.stringify([]));
+  } catch (e) {
+    console.error('Failed to clear link clicks', e);
   }
 };
