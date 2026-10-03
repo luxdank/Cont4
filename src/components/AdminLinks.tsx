@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BioLinkItem, WhatsAppSector } from '../types';
+import { compressImageFile } from '../utils/imageCompressor';
 
 interface AdminLinksProps {
   links: BioLinkItem[];
@@ -283,22 +284,53 @@ export const AdminLinks: React.FC<AdminLinksProps> = ({
                     </div>
                   </div>
 
-                  {/* Direct Image URL support */}
+                  {/* Direct Image URL & File Upload support */}
                   <div>
                     <label className="text-[10px] font-semibold text-[#3c4a42] uppercase">
-                      Link Direto de Imagem ou Ícone (Opcional)
+                      Imagem ou Ícone do Botão (Opcional)
                     </label>
-                    <input
-                      type="url"
-                      value={item.imageUrl || ''}
-                      placeholder="https://exemplo.com/icone.png"
-                      onChange={(e) =>
-                        handleUpdate(item.id, 'imageUrl', e.target.value)
-                      }
-                      className="w-full h-8 px-2.5 rounded-lg bg-[#eff4ff] text-xs font-mono text-[#0b1c30] mt-0.5 border border-slate-200 focus:outline-none focus:border-[#10b981]"
-                    />
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <input
+                        type="text"
+                        value={item.imageUrl || ''}
+                        placeholder="URL da imagem ou clique em Enviar"
+                        onChange={(e) =>
+                          handleUpdate(item.id, 'imageUrl', e.target.value.trim())
+                        }
+                        className="flex-1 h-8 px-2.5 rounded-lg bg-[#eff4ff] text-xs font-mono text-[#0b1c30] border border-slate-200 focus:outline-none focus:border-[#10b981]"
+                      />
+                      <label className="cursor-pointer h-8 px-2.5 rounded-lg bg-white border border-slate-200 text-[#0b1c30] hover:text-[#006c49] text-xs font-semibold shadow-xs inline-flex items-center gap-1 shrink-0 active:scale-95">
+                        <span className="material-symbols-outlined text-[15px]">upload</span>
+                        <span>Enviar foto</span>
+                        <input
+                          accept="image/*"
+                          type="file"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const compressed = await compressImageFile(file, 200, 0.85);
+                              handleUpdate(item.id, 'imageUrl', compressed);
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                        />
+                      </label>
+                      {item.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdate(item.id, 'imageUrl', undefined)}
+                          title="Remover imagem e usar ícone"
+                          className="h-8 px-2 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-xs text-slate-500 font-semibold shrink-0"
+                        >
+                          <span className="material-symbols-outlined text-[15px]">delete</span>
+                        </button>
+                      )}
+                    </div>
                     <p className="text-[10px] text-slate-400 mt-0.5">
-                      Substitui o ícone vetorial por uma imagem direta do HTML.
+                      Substitui o ícone vetorial por uma imagem. Otimizado automaticamente.
                     </p>
                   </div>
 

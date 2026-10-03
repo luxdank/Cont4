@@ -67,6 +67,30 @@ export default function App() {
   const [selectedLink, setSelectedLink] = useState<BioLinkItem | null>(null);
   const [selectedSector, setSelectedSector] = useState<WhatsAppSector | null>(null);
 
+  // Real-time synchronization across tabs and state
+  React.useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'smartlink_company_config' && e.newValue) {
+        try {
+          setConfig(JSON.parse(e.newValue));
+        } catch {}
+      }
+    };
+    const handleCustomConfigSync = (e: Event) => {
+      const customEvent = e as CustomEvent<CompanyConfig>;
+      if (customEvent.detail) {
+        setConfig(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('smartlink_config_updated', handleCustomConfigSync);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('smartlink_config_updated', handleCustomConfigSync);
+    };
+  }, []);
+
   // Sync to localStorage
   const handleUpdateConfig = (newConfig: CompanyConfig) => {
     setConfig(newConfig);

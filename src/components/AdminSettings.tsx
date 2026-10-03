@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CompanyConfig, WhatsAppSector } from '../types';
 import { DEFAULT_AVATAR_URL } from '../data/initialData';
+import { compressImageFile } from '../utils/imageCompressor';
 
 interface AdminSettingsProps {
   config: CompanyConfig;
@@ -38,6 +39,8 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showScriptModal, setShowScriptModal] = useState(false);
   const [showImagePrompt, setShowImagePrompt] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageSyncFeedback, setImageSyncFeedback] = useState<string | null>(null);
 
   // Copy Bio URL
   const handleCopyUrl = () => {
@@ -120,23 +123,72 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
     }
   };
 
-  // Image Upload handler (File to base64)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image Upload handler with Canvas Compression & Instant Autosave
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Por favor, selecione uma imagem de até 2MB.');
-      return;
-    }
+    try {
+      setIsProcessingImage(true);
+      setImageSyncFeedback('Otimizando imagem...');
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result) {
-        setLogoUrl(reader.result as string);
-      }
+      // Compress to crisp 360x360 WebP/JPEG (~20-40KB)
+      const compressedDataUrl = await compressImageFile(file, 360, 0.88);
+      setLogoUrl(compressedDataUrl);
+
+      // Instant autosave so it syncs immediately to the Bio without needing to scroll down
+      const updatedConfig: CompanyConfig = {
+        ...config,
+        name: companyName.trim() || 'Nova ISP',
+        bioHeadline: bioHeadline.trim() || 'Olá! Como podemos ajudar?',
+        bioSubtitle: bioSubtitle.trim(),
+        logoUrl: compressedDataUrl,
+        primaryColor,
+        bioSlug: bioSlug.trim(),
+        googleScriptUrl: googleScriptUrl.trim(),
+        detectedOrigin: detectedOrigin.trim(),
+      };
+
+      onSaveConfig(updatedConfig);
+      setImageSyncFeedback('Imagem sincronizada com a Bio!');
+      setTimeout(() => setImageSyncFeedback(null), 3500);
+    } catch (err) {
+      console.error('Erro ao processar imagem:', err);
+      setImageSyncFeedback('Falha ao processar imagem.');
+      setTimeout(() => setImageSyncFeedback(null), 3000);
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
+  // Instant sync for direct URL input
+  const handleDirectUrlChange = (newUrl: string) => {
+    setLogoUrl(newUrl);
+    const updatedConfig: CompanyConfig = {
+      ...config,
+      name: companyName.trim() || 'Nova ISP',
+      bioHeadline: bioHeadline.trim() || 'Olá! Como podemos ajudar?',
+      bioSubtitle: bioSubtitle.trim(),
+      logoUrl: newUrl.trim() || DEFAULT_AVATAR_URL,
+      primaryColor,
+      bioSlug: bioSlug.trim(),
+      googleScriptUrl: googleScriptUrl.trim(),
+      detectedOrigin: detectedOrigin.trim(),
     };
-    reader.readAsDataURL(file);
+    onSaveConfig(updatedConfig);
+    setImageSyncFeedback('Link da imagem sincronizado!');
+    setTimeout(() => setImageSyncFeedback(null), 3000);
+  };
+
+  const handleResetOriginalAvatar = () => {
+    setLogoUrl(DEFAULT_AVATAR_URL);
+    const updatedConfig: CompanyConfig = {
+      ...config,
+      logoUrl: DEFAULT_AVATAR_URL,
+    };
+    onSaveConfig(updatedConfig);
+    setImageSyncFeedback('Avatar restaurado para o original!');
+    setTimeout(() => setImageSyncFeedback(null), 3000);
   };
 
   // Save all settings
@@ -304,78 +356,107 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             <label className="text-xs font-semibold text-[#0b1c30]">
               Logo / Avatar da Empresa
             </label>
-            <button
-              type="button"
-              onClick={() => setShowImagePrompt(!showImagePrompt)}
-              className="text-[11px] text-[#0051d5] hover:underline font-semibold flex items-center gap-0.5"
-            >
-              <span className="material-symbols-outlined text-[14px]">link</span>
-              <span>{showImagePrompt ? 'Fechar Link Direto' : 'Inserir Link Direto'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowImagePrompt(!showImagePrompt)}
+                className="text-[11px] text-[#0051d5] hover:underline font-semibold flex items-center gap-0.5"
+              >
+                <span className="material-symbols-outlined text-[14px]">link</span>
+                <span>{showImagePrompt ? 'Fechar Link Direto' : 'Inserir Link Direto'}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#eff4ff] border border-slate-200/50">
-            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-white shrink-0 shadow-xs border border-slate-200">
-              <img
-                src={logoUrl}
-                alt="Logo preview"
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLElement;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent && !parent.querySelector('.fallback-box')) {
-                    const box = document.createElement('div');
-                    box.className =
-                      'fallback-box w-full h-full bg-[#10b981] flex items-center justify-center text-white';
-                    box.innerHTML =
-                      '<span class="material-symbols-outlined text-[24px]">image</span>';
-                    parent.appendChild(box);
-                  }
-                }}
-              />
+          {/* Sync status toast badge */}
+          {imageSyncFeedback && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-[#006c49] transition-all">
+              <span className="material-symbols-outlined text-[16px]">check_circle</span>
+              <span>{imageSyncFeedback}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-[#eff4ff] border border-slate-200/50">
+            <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white shrink-0 shadow-xs border border-slate-200">
+              {isProcessingImage ? (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-[#006c49] gap-1">
+                  <span className="material-symbols-outlined text-[20px] animate-spin">
+                    sync
+                  </span>
+                  <span className="text-[9px] font-bold">Salvando...</span>
+                </div>
+              ) : (
+                <img
+                  src={logoUrl}
+                  alt="Logo preview"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent && !parent.querySelector('.fallback-box')) {
+                      const box = document.createElement('div');
+                      box.className =
+                        'fallback-box w-full h-full bg-[#10b981] flex items-center justify-center text-white';
+                      box.innerHTML =
+                        '<span class="material-symbols-outlined text-[24px]">image</span>';
+                      parent.appendChild(box);
+                    }
+                  }}
+                />
+              )}
             </div>
 
-            <div className="flex flex-col gap-1 min-w-0 flex-1">
+            <div className="flex flex-col gap-1.5 min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <label className="cursor-pointer px-3 py-1 rounded-full bg-white text-[#0b1c30] text-xs font-semibold shadow-xs hover:text-[#006c49] active:scale-95 transition-all inline-flex items-center gap-1 border border-slate-200">
+                <label className="cursor-pointer px-3.5 py-1.5 rounded-full bg-[#0b1c30] text-white text-xs font-semibold shadow-xs hover:bg-[#1f2937] active:scale-95 transition-all inline-flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[15px]">upload</span>
-                  <span>Trocar arquivo</span>
+                  <span>{isProcessingImage ? 'Processando...' : 'Trocar Imagem'}</span>
                   <input
                     accept="image/*"
                     type="file"
+                    disabled={isProcessingImage}
                     className="hidden"
                     onChange={handleFileUpload}
                   />
                 </label>
-                <span className="text-[#3c4a42] text-[10px]">PNG, JPG até 2MB</span>
+                <button
+                  type="button"
+                  onClick={onViewBio}
+                  className="px-2.5 py-1 rounded-full bg-white text-[#0b1c30] hover:text-[#006c49] border border-slate-200 text-xs font-semibold shadow-xs inline-flex items-center gap-1 active:scale-95 transition-all"
+                >
+                  <span className="material-symbols-outlined text-[14px]">visibility</span>
+                  <span>Ver na Bio</span>
+                </button>
               </div>
-              <span className="text-[#3c4a42] text-[11px] truncate font-mono">
-                {logoUrl.startsWith('data:') ? 'imagem_carregada.png' : logoUrl}
-              </span>
+              <p className="text-[10px] text-slate-500">
+                Sincronização imediata. Imagens grandes são otimizadas automaticamente para carregamento ultrarrápido.
+              </p>
             </div>
           </div>
 
           {/* Direct Image Link Input - explicitly supporting what the user asked */}
           {showImagePrompt && (
-            <div className="flex flex-col gap-1 p-3 bg-[#e5eeff] rounded-xl border border-slate-200">
-              <label className="text-[11px] font-bold text-[#0b1c30] flex items-center justify-between">
-                <span>Link Direto da Imagem (URL)</span>
+            <div className="flex flex-col gap-1.5 p-3 bg-[#e5eeff] rounded-xl border border-slate-200">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-[#0b1c30]">
+                  Link Direto da Imagem (URL)
+                </label>
                 <button
                   type="button"
-                  onClick={() => setLogoUrl(DEFAULT_AVATAR_URL)}
+                  onClick={handleResetOriginalAvatar}
                   className="text-[#0051d5] text-[10px] font-semibold hover:underline"
                 >
                   Restaurar Original
                 </button>
-              </label>
+              </div>
               <div className="relative">
                 <input
                   type="url"
                   placeholder="https://exemplo.com/minha-imagem.png"
                   value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
+                  onChange={(e) => handleDirectUrlChange(e.target.value)}
                   className="w-full h-9 pl-8 pr-3 bg-white rounded-lg text-xs font-mono text-[#0b1c30] border border-slate-200 focus:outline-none focus:border-[#10b981]"
                 />
                 <span className="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-slate-400">
@@ -383,7 +464,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                 </span>
               </div>
               <p className="text-[10px] text-[#3c4a42] mt-0.5">
-                Cole o link direto da imagem hospedada em qualquer servidor, Google Fotos ou CDN.
+                Cole o link direto da imagem. Ela é sincronizada instantaneamente com a Bio.
               </p>
             </div>
           )}

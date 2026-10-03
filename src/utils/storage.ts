@@ -6,7 +6,7 @@ import {
   INITIAL_LEADS,
 } from '../data/initialData';
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   CONFIG: 'smartlink_company_config',
   SECTORS: 'smartlink_sectors',
   LINKS: 'smartlink_bio_links',
@@ -43,6 +43,9 @@ export const loadCompanyConfig = (): CompanyConfig => {
 export const saveCompanyConfig = (config: CompanyConfig) => {
   try {
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('smartlink_config_updated', { detail: config }));
+    }
   } catch (e) {
     console.error('Failed to save config to storage', e);
   }
