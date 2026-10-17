@@ -6,6 +6,8 @@ import {
   setDoc,
   deleteDoc,
   onSnapshot,
+  updateDoc,
+  increment,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import {
@@ -141,11 +143,32 @@ export function subscribeToSectors(
  */
 export async function saveSectorsToFirestore(sectors: WhatsAppSector[]): Promise<void> {
   try {
+    const activeIds = new Set(sectors.map((s) => s.id));
+    const existingSnap = await getDocs(collection(db, SECTORS_COLLECTION));
+    for (const d of existingSnap.docs) {
+      if (!activeIds.has(d.id)) {
+        await deleteDoc(d.ref);
+      }
+    }
     for (const sector of sectors) {
       await setDoc(doc(db, SECTORS_COLLECTION, sector.id), sanitizeForFirestore(sector));
     }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, SECTORS_COLLECTION);
+  }
+}
+
+/**
+ * Increment visits counter in Firestore
+ */
+export async function incrementBioVisitsInFirestore(): Promise<void> {
+  try {
+    const configDocRef = doc(db, 'config', 'main');
+    await updateDoc(configDocRef, {
+      totalVisits: increment(1),
+    });
+  } catch (e) {
+    // Non-blocking if offline
   }
 }
 

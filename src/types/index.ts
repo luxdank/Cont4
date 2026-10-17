@@ -12,6 +12,7 @@ export interface CompanyConfig {
   sheetsConnected: boolean;
   detectedOrigin: string;
   securityNoticeText: string;
+  totalVisits?: number;
 }
 
 export interface WhatsAppSector {

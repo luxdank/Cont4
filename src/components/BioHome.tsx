@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { CompanyConfig, BioLinkItem, WhatsAppSector } from '../types';
 import { incrementBioVisits } from '../utils/storage';
+import { incrementBioVisitsInFirestore } from '../utils/firestoreService';
 
 interface BioHomeProps {
   config: CompanyConfig;
@@ -20,8 +21,11 @@ export const BioHome: React.FC<BioHomeProps> = ({
   isPreview = false,
 }) => {
   useEffect(() => {
-    incrementBioVisits();
-  }, []);
+    if (!isPreview) {
+      incrementBioVisits();
+      incrementBioVisitsInFirestore().catch(() => {});
+    }
+  }, [isPreview]);
 
   const getSector = (sectorId: string) => sectors.find((s) => s.id === sectorId);
 

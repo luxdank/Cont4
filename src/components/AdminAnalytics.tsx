@@ -1,8 +1,9 @@
 import React from 'react';
-import { LeadRecord, WhatsAppSector, PixClickRecord, LinkClickRecord, BioLinkItem } from '../types';
+import { CompanyConfig, LeadRecord, WhatsAppSector, PixClickRecord, LinkClickRecord, BioLinkItem } from '../types';
 import { getBioVisits } from '../utils/storage';
 
 interface AdminAnalyticsProps {
+  config?: CompanyConfig;
   leads: LeadRecord[];
   sectors: WhatsAppSector[];
   links?: BioLinkItem[];
@@ -14,6 +15,7 @@ interface AdminAnalyticsProps {
 }
 
 export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
+  config,
   leads,
   sectors,
   links = [],
@@ -26,7 +28,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
   const totalLeads = leads.length;
   const totalPixClicks = pixClicks.length;
   const totalLinkClicks = linkClicks.length;
-  const visits = getBioVisits();
+  const visits = Math.max(config?.totalVisits || 0, getBioVisits());
 
   // All conversions / engagements
   const totalEngagements = Math.max(totalLinkClicks, totalLeads + totalPixClicks);

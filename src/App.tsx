@@ -449,6 +449,7 @@ export default function App() {
 
             {adminTab === 'analytics' && (
               <AdminAnalytics
+                config={config}
                 leads={leads}
                 sectors={sectors}
                 links={links}

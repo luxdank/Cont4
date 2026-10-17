@@ -1,12 +1,33 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  getFirestore,
+  doc,
+  getDocFromServer,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  Firestore,
+} from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-/* CRITICAL: Must pass firebaseConfig.firestoreDatabaseId */
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+/* CRITICAL: Must pass firebaseConfig.firestoreDatabaseId and persistent multi-tab cache */
+let firestoreDb: Firestore;
+try {
+  firestoreDb = initializeFirestore(
+    app,
+    {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    },
+    firebaseConfig.firestoreDatabaseId
+  );
+} catch {
+  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+}
+
+export const db = firestoreDb;
 export const auth = getAuth(app);
 
 export enum OperationType {

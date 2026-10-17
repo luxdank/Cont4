@@ -32,6 +32,22 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
   // Sectors list editable copy
   const [sectorList, setSectorList] = useState<WhatsAppSector[]>(sectors);
 
+  // Sync state whenever props change from Firestore
+  React.useEffect(() => {
+    setCompanyName(config.name);
+    setBioHeadline(config.bioHeadline);
+    setBioSubtitle(config.bioSubtitle);
+    if (config.logoUrl) setLogoUrl(config.logoUrl);
+    if (config.primaryColor) setPrimaryColor(config.primaryColor);
+    if (config.bioSlug) setBioSlug(config.bioSlug);
+    if (config.googleScriptUrl !== undefined) setGoogleScriptUrl(config.googleScriptUrl);
+    if (config.detectedOrigin) setDetectedOrigin(config.detectedOrigin);
+  }, [config]);
+
+  React.useEffect(() => {
+    setSectorList(sectors);
+  }, [sectors]);
+
   // UI Micro-interactions
   const [copied, setCopied] = useState(false);
   const [isTestingSheet, setIsTestingSheet] = useState(false);
@@ -217,7 +233,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
     setIsSaving(true);
     const updatedConfig: CompanyConfig = {
       ...config,
-      name: companyName.trim() || 'Sua Empresa',
+      name: companyName.trim() || config.name || 'Nova ISP',
       bioHeadline: bioHeadline.trim() || 'Olá! Como podemos ajudar?',
       bioSubtitle: bioSubtitle.trim(),
       logoUrl: logoUrl.trim() || DEFAULT_AVATAR_URL,
@@ -246,17 +262,39 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
   return (
     <div className="flex flex-col w-full max-w-lg mx-auto pb-32 pt-2 px-4 gap-4">
       {/* Header Intro Delight */}
-      <div className="flex flex-col gap-1 mt-1">
-        <div className="inline-flex items-center gap-1.5 text-[#006c49] font-bold text-xs uppercase tracking-wider">
-          <span className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></span>
-          <span>Painel Express MVP</span>
+      <div className="flex flex-col gap-2 mt-1">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-[#006c49] font-bold text-xs uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></span>
+              <span>Painel de Ajustes</span>
+            </div>
+            <h2 className="font-display font-bold text-xl text-[#0b1c30]">
+              Configuração do Link
+            </h2>
+          </div>
+
+          <button
+            onClick={handleSaveAll}
+            type="button"
+            disabled={isSaving}
+            className={`px-4 py-2 rounded-full font-bold text-xs shadow-sm active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ${
+              savedSuccess
+                ? 'bg-[#006c49] text-white'
+                : 'bg-[#10b981] hover:bg-[#059669] text-white'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">
+              {savedSuccess ? 'check_circle' : 'save'}
+            </span>
+            <span>{isSaving ? 'Salvando...' : savedSuccess ? 'Salvo!' : 'Salvar Alterações'}</span>
+          </button>
         </div>
-        <h2 className="font-display font-bold text-xl text-[#0b1c30]">
-          Configuração do Link
-        </h2>
-        <p className="text-xs text-[#3c4a42]">
-          Ajuste seus números e integre com o Google Sheets em 1 minuto.
-        </p>
+
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-[#006c49] text-[11px] font-semibold border border-emerald-200/80 w-fit">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Alterações gravadas no Firebase Firestore com persistência permanente</span>
+        </div>
       </div>
 
       {/* Quick Share Bar */}
