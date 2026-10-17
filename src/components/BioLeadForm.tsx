@@ -132,7 +132,7 @@ export const BioLeadForm: React.FC<BioLeadFormProps> = ({
       selectedSector.initialMessage?.trim() ||
       '';
 
-    const targetPhone = selectedSector.phone || '5521999990001';
+    const targetPhone = selectedSector.phone || '(21) 2762-5350';
     const waUrl = buildWhatsAppLink(
       targetPhone,
       newLead.name,

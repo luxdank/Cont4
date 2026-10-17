@@ -236,6 +236,39 @@ export const AdminContacts: React.FC<AdminContactsProps> = ({
         </button>
       </div>
 
+      {/* Official Fixed Contact Phone Display */}
+      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-white border border-emerald-500/25 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#10b981] text-white flex items-center justify-center shadow-xs shrink-0">
+            <span className="material-symbols-outlined text-[22px]">phone_in_talk</span>
+          </div>
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#006c49]">
+                Número de Contato Oficial
+              </span>
+              <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-[#005236] text-[9px] font-bold">
+                FIXO NO APP
+              </span>
+            </div>
+            <span className="font-display font-extrabold text-base sm:text-lg text-[#0b1c30] tracking-wide font-mono">
+              (21) 2762-5350
+            </span>
+          </div>
+        </div>
+
+        <a
+          href="https://wa.me/552127625350"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Abrir WhatsApp oficial"
+          className="px-3 py-1.5 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold flex items-center gap-1 shadow-xs active:scale-95 transition-all shrink-0 cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[16px]">chat</span>
+          <span className="hidden sm:inline">WhatsApp</span>
+        </a>
+      </div>
+
       {/* Main Metric Banner */}
       <div className="p-5 rounded-2xl bg-white shadow-sm flex items-center justify-between relative overflow-hidden border border-slate-100">
         <div className="flex flex-col gap-0.5 z-10">

@@ -96,7 +96,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
       id: `sector-${Date.now()}`,
       name: 'Novo Setor',
       icon: 'support_agent',
-      phone: '5521999990000',
+      phone: '(21) 2762-5350',
       initialMessage: 'Olá, gostaria de informações!',
       isOnline: true,
       responseTime: '~5 min',
