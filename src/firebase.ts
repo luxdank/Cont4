@@ -4,7 +4,7 @@ import {
   initializeFirestore,
   getFirestore,
   doc,
-  getDocFromServer,
+  getDoc,
   persistentLocalCache,
   persistentMultipleTabManager,
   Firestore,
@@ -14,17 +14,22 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 /* CRITICAL: Must pass firebaseConfig.firestoreDatabaseId and persistent multi-tab cache */
+const customDbId = (firebaseConfig as any).firestoreDatabaseId;
 let firestoreDb: Firestore;
 try {
-  firestoreDb = initializeFirestore(
-    app,
-    {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-    },
-    firebaseConfig.firestoreDatabaseId
-  );
+  firestoreDb = customDbId
+    ? initializeFirestore(
+        app,
+        {
+          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+        },
+        customDbId
+      )
+    : initializeFirestore(app, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+      });
 } catch {
-  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  firestoreDb = customDbId ? getFirestore(app, customDbId) : getFirestore(app);
 }
 
 export const db = firestoreDb;
@@ -61,8 +66,20 @@ export function handleFirestoreError(
   operationType: OperationType,
   path: string | null
 ): never {
+  const errMsg = error instanceof Error ? error.message : String(error);
+
+  // If this is a transient offline state, do not format as a security rule violation
+  if (
+    errMsg.includes('the client is offline') ||
+    errMsg.includes('client is offline') ||
+    (error as any)?.code === 'unavailable'
+  ) {
+    console.warn(`Firestore offline notice [${operationType}] for ${path}:`, errMsg);
+    throw error;
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMsg,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -82,18 +99,17 @@ export function handleFirestoreError(
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Validate connection to Firestore on initialization
+// Validate connection to Firestore
 export async function testConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    return true;
+    const snap = await getDoc(doc(db, 'config', 'main'));
+    return snap.exists();
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firebase client appears to be offline.');
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('offline') || (error as any)?.code === 'unavailable') {
+      console.warn('Firestore offline notice during connection test.');
+      return true;
     }
     return false;
   }
 }
-
-// Execute connection test
-testConnection().catch(() => {});

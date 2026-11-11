@@ -55,19 +55,36 @@ export async function initializeFirestoreDatabase(): Promise<void> {
     if (!configSnap.exists()) {
       // Seed main company configuration
       await setDoc(configDocRef, sanitizeForFirestore(INITIAL_COMPANY_CONFIG));
+    }
 
-      // Seed sectors
-      for (const sector of INITIAL_SECTORS) {
-        await setDoc(doc(db, SECTORS_COLLECTION, sector.id), sanitizeForFirestore(sector));
+    // Ensure all standard sectors exist
+    for (const sector of INITIAL_SECTORS) {
+      const sRef = doc(db, SECTORS_COLLECTION, sector.id);
+      const sSnap = await getDoc(sRef);
+      if (!sSnap.exists()) {
+        await setDoc(sRef, sanitizeForFirestore(sector));
       }
+    }
 
-      // Seed bio links
-      for (const link of INITIAL_BIO_LINKS) {
-        await setDoc(doc(db, LINKS_COLLECTION, link.id), sanitizeForFirestore(link));
+    // Ensure all standard bio links exist
+    for (const link of INITIAL_BIO_LINKS) {
+      const lRef = doc(db, LINKS_COLLECTION, link.id);
+      const lSnap = await getDoc(lRef);
+      if (!lSnap.exists()) {
+        await setDoc(lRef, sanitizeForFirestore(link));
       }
     }
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, 'init_seed');
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('offline') || msg.includes('unavailable')) {
+      console.warn('Firestore offline during initial seed check. Local cache and subscriptions will sync automatically.');
+      return;
+    }
+    if (msg.toLowerCase().includes('permission') || (error as any)?.code === 'permission-denied') {
+      handleFirestoreError(error, OperationType.WRITE, 'init_seed');
+    } else {
+      console.warn('Firestore initialization notice:', error);
+    }
   }
 }
 
@@ -184,7 +201,37 @@ export function subscribeToBioLinks(
     colRef,
     async (snapshot) => {
       if (!snapshot.empty) {
-        const links = snapshot.docs.map((d) => d.data() as BioLinkItem);
+        let links = snapshot.docs.map((d) => d.data() as BioLinkItem);
+        const existingIds = new Set(links.map((l) => l.id));
+        const existingSectors = new Set(links.map((l) => l.sectorId));
+
+        // Detect missing standard defaults
+        const missingDefaults = INITIAL_BIO_LINKS.filter(
+          (def) => !existingIds.has(def.id) && !existingSectors.has(def.sectorId)
+        );
+
+        if (missingDefaults.length > 0) {
+          for (const missing of missingDefaults) {
+            setDoc(doc(db, LINKS_COLLECTION, missing.id), sanitizeForFirestore(missing)).catch(console.warn);
+          }
+          links = [...links, ...missingDefaults];
+        }
+
+        // If only 1 link or 0 links are active, automatically restore default links to active: true
+        const activeCount = links.filter((l) => l.active).length;
+        if (activeCount <= 1) {
+          links = links.map((l) => {
+            const isDefault = INITIAL_BIO_LINKS.some(
+              (def) => def.id === l.id || def.sectorId === l.sectorId
+            );
+            if (isDefault && !l.active) {
+              setDoc(doc(db, LINKS_COLLECTION, l.id), sanitizeForFirestore({ ...l, active: true })).catch(console.warn);
+              return { ...l, active: true };
+            }
+            return l;
+          });
+        }
+
         // Sort by order
         links.sort((a, b) => a.order - b.order);
         onUpdate(links);
@@ -195,12 +242,27 @@ export function subscribeToBioLinks(
             (err) => handleFirestoreError(err, OperationType.CREATE, LINKS_COLLECTION)
           );
         }
+        onUpdate(INITIAL_BIO_LINKS);
       }
     },
     (error) => {
       handleFirestoreError(error, OperationType.GET, LINKS_COLLECTION);
     }
   );
+}
+
+/**
+ * Reset all Bio Links in Firestore back to standard 4 options
+ */
+export async function resetBioLinksInFirestore(): Promise<BioLinkItem[]> {
+  try {
+    for (const link of INITIAL_BIO_LINKS) {
+      await setDoc(doc(db, LINKS_COLLECTION, link.id), sanitizeForFirestore(link));
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, LINKS_COLLECTION);
+  }
+  return INITIAL_BIO_LINKS;
 }
 
 /**
@@ -266,6 +328,17 @@ export async function addLeadToFirestore(lead: LeadRecord): Promise<void> {
     await setDoc(doc(db, LEADS_COLLECTION, lead.id), sanitizeForFirestore(lead));
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `${LEADS_COLLECTION}/${lead.id}`);
+  }
+}
+
+/**
+ * Update existing lead in Firestore (e.g. funnel stage, notes, scheduled date)
+ */
+export async function updateLeadInFirestore(lead: LeadRecord): Promise<void> {
+  try {
+    await setDoc(doc(db, LEADS_COLLECTION, lead.id), sanitizeForFirestore(lead), { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `${LEADS_COLLECTION}/${lead.id}`);
   }
 }
 

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { CompanyConfig, LeadRecord, WhatsAppSector, PixClickRecord, LinkClickRecord, BioLinkItem } from '../types';
 import { getBioVisits } from '../utils/storage';
+import { formatLeadDateLabel } from '../utils/phone';
 
 interface AdminAnalyticsProps {
   config?: CompanyConfig;
@@ -14,6 +15,44 @@ interface AdminAnalyticsProps {
   onViewBio: () => void;
 }
 
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+function parseRecordDate(item: { fullDate?: string; timestamp?: string; id?: string }): Date | null {
+  if (item.fullDate) {
+    const d = new Date(item.fullDate);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (item.timestamp) {
+    const match = item.timestamp.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const year = match[3]
+        ? match[3].length === 2
+          ? 2000 + parseInt(match[3], 10)
+          : parseInt(match[3], 10)
+        : new Date().getFullYear();
+      const d = new Date(year, month, day);
+      if (!isNaN(d.getTime())) return d;
+    }
+    const d = new Date(item.timestamp);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (item.id) {
+    const match = item.id.match(/\d{11,}/);
+    if (match) {
+      const ts = parseInt(match[0], 10);
+      if (!isNaN(ts)) {
+        return new Date(ts);
+      }
+    }
+  }
+  return null;
+}
+
 export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
   config,
   leads,
@@ -25,9 +64,118 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
   onClearLinkClicks,
   onViewBio,
 }) => {
-  const totalLeads = leads.length;
-  const totalPixClicks = pixClicks.length;
-  const totalLinkClicks = linkClicks.length;
+  const [selectedMonth, setSelectedMonth] = useState<string>('all'); // 'all' or 'YYYY-MM'
+  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'today' | 'yesterday' | '7days' | '30days' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+
+  // Available months list derived from linkClicks, pixClicks and leads
+  const availableMonths = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; count: number }>();
+
+    // Current month guaranteed as an option
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const currentLabel = `${MONTH_NAMES[now.getMonth()]} de ${now.getFullYear()}`;
+    map.set(currentKey, { key: currentKey, label: currentLabel, count: 0 });
+
+    const processItem = (item: { fullDate?: string; timestamp?: string; id?: string }) => {
+      const d = parseRecordDate(item);
+      if (d) {
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = `${MONTH_NAMES[d.getMonth()]} de ${d.getFullYear()}`;
+        const existing = map.get(key);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          map.set(key, { key, label, count: 1 });
+        }
+      }
+    };
+
+    linkClicks.forEach(processItem);
+    pixClicks.forEach(processItem);
+    leads.forEach(processItem);
+
+    return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));
+  }, [linkClicks, pixClicks, leads]);
+
+  // Matcher for period
+  const matchesPeriod = (d: Date | null): boolean => {
+    if (selectedPeriod === 'all') return true;
+    if (!d) return false;
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    if (selectedPeriod === 'today') {
+      return d >= todayStart && d <= todayEnd;
+    }
+
+    if (selectedPeriod === 'yesterday') {
+      const yesterdayStart = new Date(todayStart);
+      yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+      const yesterdayEnd = new Date(todayEnd);
+      yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+      return d >= yesterdayStart && d <= yesterdayEnd;
+    }
+
+    if (selectedPeriod === '7days') {
+      const sevenDaysAgo = new Date(todayStart);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      return d >= sevenDaysAgo && d <= todayEnd;
+    }
+
+    if (selectedPeriod === '30days') {
+      const thirtyDaysAgo = new Date(todayStart);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return d >= thirtyDaysAgo && d <= todayEnd;
+    }
+
+    if (selectedPeriod === 'custom') {
+      if (customStartDate) {
+        const start = new Date(`${customStartDate}T00:00:00`);
+        if (!isNaN(start.getTime()) && d < start) return false;
+      }
+      if (customEndDate) {
+        const end = new Date(`${customEndDate}T23:59:59`);
+        if (!isNaN(end.getTime()) && d > end) return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
+  // Filter items by Month and Period
+  const isItemInSelectedDate = (item: { fullDate?: string; timestamp?: string; id?: string }) => {
+    const d = parseRecordDate(item);
+
+    // Period check
+    if (!matchesPeriod(d)) return false;
+
+    // Month check
+    if (selectedMonth !== 'all') {
+      if (d) {
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (key !== selectedMonth) return false;
+      } else {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Filtered collections
+  const filteredLinkClicks = useMemo(() => linkClicks.filter(isItemInSelectedDate), [linkClicks, selectedMonth, selectedPeriod, customStartDate, customEndDate]);
+  const filteredPixClicks = useMemo(() => pixClicks.filter(isItemInSelectedDate), [pixClicks, selectedMonth, selectedPeriod, customStartDate, customEndDate]);
+  const filteredLeads = useMemo(() => leads.filter(isItemInSelectedDate), [leads, selectedMonth, selectedPeriod, customStartDate, customEndDate]);
+
+  const totalLeads = filteredLeads.length;
+  const totalPixClicks = filteredPixClicks.length;
+  const totalLinkClicks = filteredLinkClicks.length;
   const visits = Math.max(config?.totalVisits || 0, getBioVisits());
 
   // All conversions / engagements
@@ -39,7 +187,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
       ? '100.0'
       : '0.0';
 
-  // Calculate clicks per link
+  // Calculate clicks per link for the filtered timeframe
   const linkClickCounts: Record<string, { title: string; count: number; icon?: string; colorType?: string }> = {};
 
   // Initialize with current links so every link is listed
@@ -52,8 +200,8 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
     };
   });
 
-  // Tally clicks from linkClicks collection
-  linkClicks.forEach((c) => {
+  // Tally clicks from filteredLinkClicks collection
+  filteredLinkClicks.forEach((c) => {
     if (linkClickCounts[c.linkId]) {
       linkClickCounts[c.linkId].count += 1;
     } else {
@@ -66,26 +214,26 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
     }
   });
 
-  // Sector distribution for WhatsApp leads
+  // Sector distribution for WhatsApp leads in this timeframe
   const sectorCounts: Record<string, number> = {};
-  leads.forEach((l) => {
+  filteredLeads.forEach((l) => {
     const s = l.sector || 'Geral';
     sectorCounts[s] = (sectorCounts[s] || 0) + 1;
   });
 
-  // Origin distribution
+  // Origin distribution in this timeframe
   const originCounts: Record<string, number> = {};
-  leads.forEach((l) => {
+  filteredLeads.forEach((l) => {
     const o = l.origin || 'Instagram';
     originCounts[o] = (originCounts[o] || 0) + 1;
   });
-  linkClicks.forEach((c) => {
+  filteredLinkClicks.forEach((c) => {
     const o = c.origin || 'Instagram';
     originCounts[o] = (originCounts[o] || 0) + 1;
   });
 
-  const lastPixClick = pixClicks.length > 0 ? pixClicks[0] : null;
-  const lastLinkClick = linkClicks.length > 0 ? linkClicks[0] : null;
+  const lastPixClick = filteredPixClicks.length > 0 ? filteredPixClicks[0] : null;
+  const lastLinkClick = filteredLinkClicks.length > 0 ? filteredLinkClicks[0] : null;
 
   return (
     <div className="flex flex-col w-full max-w-lg mx-auto pb-32 pt-2 px-4 gap-4">
@@ -106,6 +254,139 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>Todos os links conectados e monitorados no Firebase</span>
         </div>
+      </div>
+
+      {/* FILTRO MENSAL E DE PERÍODO DOS CLIQUES */}
+      <div className="flex flex-col gap-2.5 p-3.5 bg-white rounded-2xl border border-blue-200/80 shadow-xs">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+            </div>
+            <div>
+              <span className="text-xs font-bold text-[#0b1c30]">Filtro de Desempenho</span>
+              <p className="text-[10px] text-slate-500">Analise cliques de todos os links por mês ou período</p>
+            </div>
+          </div>
+
+          {/* Month Dropdown */}
+          <div className="flex items-center h-8 px-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-[#0b1c30] gap-1.5 focus-within:border-blue-500 shadow-xs">
+            <span className="material-symbols-outlined text-[16px] text-blue-600">
+              event
+            </span>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-transparent text-xs font-semibold text-[#0b1c30] focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="all">Todos os Meses</option>
+              {availableMonths.map((m) => (
+                <option key={m.key} value={m.key}>
+                  {m.label} ({m.count} registros)
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Quick Period Buttons */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-100">
+          {[
+            { id: 'all', label: 'Todo o histórico' },
+            { id: 'today', label: 'Hoje' },
+            { id: 'yesterday', label: 'Ontem' },
+            { id: '7days', label: 'Últimos 7 dias' },
+            { id: '30days', label: 'Últimos 30 dias' },
+            { id: 'custom', label: 'Personalizado...' },
+          ].map((period) => (
+            <button
+              key={period.id}
+              type="button"
+              onClick={() => setSelectedPeriod(period.id as any)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                selectedPeriod === period.id
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              {period.label}
+            </button>
+          ))}
+
+          {(selectedPeriod !== 'all' || selectedMonth !== 'all' || customStartDate || customEndDate) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPeriod('all');
+                setSelectedMonth('all');
+                setCustomStartDate('');
+                setCustomEndDate('');
+              }}
+              className="text-[11px] text-rose-600 hover:underline font-semibold flex items-center gap-0.5 ml-auto cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[13px]">restart_alt</span>
+              <span>Limpar filtros</span>
+            </button>
+          )}
+        </div>
+
+        {/* Custom Date Range Picker */}
+        {selectedPeriod === 'custom' && (
+          <div className="flex items-center gap-2 pt-1 animate-fadeIn flex-wrap">
+            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 text-xs">
+              <span className="text-[10px] text-slate-400 uppercase font-semibold">De:</span>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="text-xs text-[#0b1c30] focus:outline-none bg-transparent"
+              />
+            </div>
+            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 text-xs">
+              <span className="text-[10px] text-slate-400 uppercase font-semibold">Até:</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="text-xs text-[#0b1c30] focus:outline-none bg-transparent"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Active Filter Indicator Badge */}
+        {(selectedMonth !== 'all' || selectedPeriod !== 'all') && (
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-blue-50/70 border border-blue-200/60 text-xs text-blue-900">
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px] text-blue-600">
+                filter_alt
+              </span>
+              <span>
+                Exibindo cliques de:{' '}
+                <strong className="font-bold">
+                  {selectedMonth !== 'all'
+                    ? availableMonths.find((m) => m.key === selectedMonth)?.label || selectedMonth
+                    : ''}
+                  {selectedMonth !== 'all' && selectedPeriod !== 'all' ? ' • ' : ''}
+                  {selectedPeriod === 'today'
+                    ? 'Hoje'
+                    : selectedPeriod === 'yesterday'
+                    ? 'Ontem'
+                    : selectedPeriod === '7days'
+                    ? 'Últimos 7 dias'
+                    : selectedPeriod === '30days'
+                    ? 'Últimos 30 dias'
+                    : selectedPeriod === 'custom'
+                    ? `${customStartDate || 'Início'} até ${customEndDate || 'Fim'}`
+                    : ''}
+                </strong>
+              </span>
+            </div>
+            <span className="font-bold text-blue-700 font-mono">
+              {totalLinkClicks} {totalLinkClicks === 1 ? 'clique' : 'cliques'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 4 Metric Cards Grid */}
@@ -365,22 +646,22 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
       </div>
 
       {/* Histórico Recente de Cliques em Links */}
-      {linkClicks.length > 0 && (
+      {filteredLinkClicks.length > 0 && (
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-sm text-[#0b1c30] flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[18px] text-emerald-600">
                 history
               </span>
-              <span>Últimos Cliques em Links (Tempo Real)</span>
+              <span>Últimos Cliques em Links no Período</span>
             </h3>
             <span className="text-[11px] text-slate-400 font-mono">
-              {linkClicks.length} registros
+              {filteredLinkClicks.length} registros
             </span>
           </div>
 
           <div className="max-h-48 overflow-y-auto flex flex-col gap-1.5 pr-1">
-            {linkClicks.slice(0, 10).map((click) => (
+            {filteredLinkClicks.slice(0, 10).map((click) => (
               <div
                 key={click.id}
                 className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-xs"
@@ -399,7 +680,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
                   </div>
                 </div>
                 <span className="font-mono text-[11px] text-slate-500 font-semibold shrink-0">
-                  {click.timestamp}
+                  {formatLeadDateLabel(click.fullDate, click.timestamp, click.id)}
                 </span>
               </div>
             ))}

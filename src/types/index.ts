@@ -13,6 +13,18 @@ export interface CompanyConfig {
   detectedOrigin: string;
   securityNoticeText: string;
   totalVisits?: number;
+  evolutionApiUrl?: string;
+  evolutionApiKey?: string;
+  evolutionInstanceName?: string;
+  evolutionAutoSendEnabled?: boolean;
+  evolutionSendToClient?: boolean;
+  evolutionSendToCompany?: boolean;
+  evolutionClientMessageTemplate?: string;
+  evolutionCompanyMessageTemplate?: string;
+  googleSpreadsheetId?: string;
+  googleSpreadsheetUrl?: string;
+  googleSpreadsheetTitle?: string;
+  googleSpreadsheetLastSync?: string;
 }
 
 export interface WhatsAppSector {
@@ -42,6 +54,13 @@ export interface BioLinkItem {
   customMessage?: string; // Custom WhatsApp greeting phrase
 }
 
+export type CommercialFunnelStage =
+  | 'novo'
+  | 'ass_enviada'
+  | 'agenda'
+  | 'executado'
+  | 'cancelado';
+
 export interface LeadRecord {
   id: string;
   timestamp: string;
@@ -55,6 +74,9 @@ export interface LeadRecord {
   initials: string;
   issue?: string;
   cep?: string;
+  funnelStage?: CommercialFunnelStage;
+  scheduledDate?: string;
+  notes?: string;
 }
 
 export interface PixClickRecord {

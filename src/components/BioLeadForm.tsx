@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CompanyConfig, WhatsAppSector, BioLinkItem, LeadRecord } from '../types';
 import { formatBrazilianPhone, formatCEP, buildWhatsAppLink, getInitials } from '../utils/phone';
+import { sendEvolutionTextMessage } from '../utils/evolutionService';
 
 interface BioLeadFormProps {
   config: CompanyConfig;
@@ -68,10 +69,12 @@ export const BioLeadForm: React.FC<BioLeadFormProps> = ({
 
     // Prepare lead record
     const now = new Date();
-    const timeFormatted = `Hoje, ${now.getHours().toString().padStart(2, '0')}:${now
-      .getMinutes()
-      .toString()
-      .padStart(2, '0')}`;
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const timeFormatted = `${day}/${month}/${year}, ${hours}:${minutes}`;
 
     const finalIssue = isSupport
       ? selectedIssue === 'Outros' && customIssueDetail.trim()
@@ -123,6 +126,61 @@ export const BioLeadForm: React.FC<BioLeadFormProps> = ({
         }).catch((err) => console.log('Sincronização com planilha iniciada:', err));
       } catch (err) {
         console.warn('Erro ao disparar para a planilha:', err);
+      }
+    }
+
+    // Disparo Automático via Evolution API (se habilitado)
+    if (
+      config.evolutionAutoSendEnabled &&
+      config.evolutionApiUrl &&
+      config.evolutionApiKey &&
+      config.evolutionInstanceName
+    ) {
+      // 1. Enviar mensagem para o WhatsApp do cliente
+      if (config.evolutionSendToClient !== false && newLead.phone) {
+        const clientTemplate =
+          config.evolutionClientMessageTemplate ||
+          'Olá, {nome}! Recebemos seu contato através da nossa Bio para o setor *{setor}*. Em instantes um de nossos atendentes falará com você! 😊💜';
+
+        const clientText = clientTemplate
+          .replace(/\{nome\}/gi, newLead.name)
+          .replace(/\{telefone\}/gi, newLead.phone)
+          .replace(/\{setor\}/gi, newLead.sector)
+          .replace(/\{origem\}/gi, newLead.origin)
+          .replace(/\{cep\}/gi, newLead.cep ? `CEP: ${newLead.cep}` : '')
+          .replace(/\{problema\}/gi, newLead.issue ? `Assunto: ${newLead.issue}` : '');
+
+        sendEvolutionTextMessage({
+          serverUrl: config.evolutionApiUrl,
+          apiKey: config.evolutionApiKey,
+          instanceName: config.evolutionInstanceName,
+          number: newLead.phone,
+          text: clientText,
+        }).catch((e) => console.warn('Evolution API auto-send to client error:', e));
+      }
+
+      // 2. Enviar alerta para o WhatsApp da empresa
+      if (config.evolutionSendToCompany !== false) {
+        const companyNumber = selectedSector.phone || '(21) 2762-5350';
+        const companyTemplate =
+          config.evolutionCompanyMessageTemplate ||
+          '🔔 *Novo Lead Capturado na Bio!*\n\n👤 *Nome:* {nome}\n📱 *WhatsApp:* {telefone}\n🎯 *Setor:* {setor}\n📍 *Origem:* {origem}';
+
+        const companyText = companyTemplate
+          .replace(/\{nome\}/gi, newLead.name)
+          .replace(/\{telefone\}/gi, newLead.phone)
+          .replace(/\{setor\}/gi, newLead.sector)
+          .replace(/\{origem\}/gi, newLead.origin)
+          .replace(/\{cep\}/gi, newLead.cep ? `CEP: ${newLead.cep}` : '')
+          .replace(/\{problema\}/gi, newLead.issue ? `Assunto: ${newLead.issue}` : '');
+
+        sendEvolutionTextMessage({
+          serverUrl: config.evolutionApiUrl,
+          apiKey: config.evolutionApiKey,
+          instanceName: config.evolutionInstanceName,
+          number: companyNumber,
+          text: companyText,
+        }).catch((e) => console.warn('Evolution API auto-send to company error:', e));
       }
     }
 

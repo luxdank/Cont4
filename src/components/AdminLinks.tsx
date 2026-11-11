@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { BioLinkItem, WhatsAppSector } from '../types';
 import { compressImageFile } from '../utils/imageCompressor';
+import { INITIAL_BIO_LINKS } from '../data/initialData';
 
 interface AdminLinksProps {
   links: BioLinkItem[];
   sectors: WhatsAppSector[];
   onSaveLinks: (links: BioLinkItem[]) => void;
+  onRestoreDefaults?: () => void;
   onViewBio: () => void;
 }
 
@@ -13,6 +15,7 @@ export const AdminLinks: React.FC<AdminLinksProps> = ({
   links,
   sectors,
   onSaveLinks,
+  onRestoreDefaults,
   onViewBio,
 }) => {
   const [items, setItems] = useState<BioLinkItem[]>(links);
@@ -23,6 +26,19 @@ export const AdminLinks: React.FC<AdminLinksProps> = ({
   React.useEffect(() => {
     setItems(links);
   }, [links]);
+
+  const handleRestoreDefaults = () => {
+    if (window.confirm('Deseja restaurar as 4 opções padrão da Bio (Comercial, Suporte, Financeiro e PIX)?')) {
+      if (onRestoreDefaults) {
+        onRestoreDefaults();
+      } else {
+        setItems(INITIAL_BIO_LINKS);
+        onSaveLinks(INITIAL_BIO_LINKS);
+      }
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2500);
+    }
+  };
 
   const handleToggleActive = (id: string) => {
     const updated = items.map((item) =>
@@ -91,7 +107,7 @@ export const AdminLinks: React.FC<AdminLinksProps> = ({
     <div className="flex flex-col w-full max-w-lg mx-auto pb-32 pt-2 px-4 gap-4">
       {/* Header */}
       <div className="flex flex-col gap-2 mt-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div>
             <h2 className="font-display font-bold text-xl text-[#0b1c30]">
               Botões da Bio
@@ -100,14 +116,25 @@ export const AdminLinks: React.FC<AdminLinksProps> = ({
               Personalize as opções que os clientes vêem ao acessar seu link.
             </p>
           </div>
-          <button
-            onClick={handleAddNew}
-            type="button"
-            className="px-3 py-1.5 rounded-full bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold flex items-center gap-1 active:scale-95 shadow-xs transition-all"
-          >
-            <span className="material-symbols-outlined text-[16px]">add</span>
-            <span>Criar Opção</span>
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={handleRestoreDefaults}
+              type="button"
+              title="Restaurar botões padrão: Comercial, Suporte, Financeiro e PIX"
+              className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0b1c30] text-xs font-semibold flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+              <span className="hidden sm:inline">Restaurar Padrão</span>
+            </button>
+            <button
+              onClick={handleAddNew}
+              type="button"
+              className="px-3 py-1.5 rounded-full bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold flex items-center gap-1 active:scale-95 shadow-xs transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span>Criar Opção</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-[#006c49] text-[11px] font-semibold border border-emerald-200/80 w-fit">
@@ -115,6 +142,31 @@ export const AdminLinks: React.FC<AdminLinksProps> = ({
           <span>Links sincronizados com Firebase Firestore em tempo real</span>
         </div>
       </div>
+
+      {/* Warning banner if only 1 option is active */}
+      {items.filter((it) => it.active).length <= 1 && (
+        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-amber-600 text-[20px] shrink-0">
+              warning
+            </span>
+            <div className="text-xs">
+              <span className="font-semibold block">Apenas 1 opção visível na Bio</span>
+              <span className="text-amber-800 text-[11px]">
+                As outras opções (Suporte, Financeiro, PIX) podem estar ocultas ou ausentes.
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRestoreDefaults}
+            className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shrink-0 flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[15px]">restart_alt</span>
+            <span>Restaurar 4 Opções</span>
+          </button>
+        </div>
+      )}
 
       {/* List */}
       <div className="flex flex-col gap-3">

@@ -16,6 +16,14 @@ export const INITIAL_COMPANY_CONFIG: CompanyConfig = {
   sheetsConnected: true,
   detectedOrigin: 'Instagram Bio',
   securityNoticeText: 'Seus dados são usados exclusivamente para o atendimento com segurança e privacidade.',
+  evolutionApiUrl: '',
+  evolutionApiKey: '',
+  evolutionInstanceName: '',
+  evolutionAutoSendEnabled: false,
+  evolutionSendToClient: true,
+  evolutionSendToCompany: true,
+  evolutionClientMessageTemplate: 'Olá, {nome}! Recebemos seu contato através da nossa Bio para o setor *{setor}*. Em instantes um de nossos atendentes falará com você! 😊💜',
+  evolutionCompanyMessageTemplate: '🔔 *Novo Lead Capturado na Bio!*\n\n👤 *Nome:* {nome}\n📱 *WhatsApp:* {telefone}\n🎯 *Setor:* {setor}\n📍 *Origem:* {origem}',
 };
 
 export const INITIAL_SECTORS: WhatsAppSector[] = [
@@ -77,7 +85,7 @@ export const INITIAL_BIO_LINKS: BioLinkItem[] = [
   },
   {
     id: 'link-2',
-    title: 'Preciso de suporte',
+    title: 'Já sou cliente / Suporte',
     subtitle: 'Dúvidas técnicas e chamados',
     sectorId: 'suporte',
     responseTime: '~5 min',
@@ -89,8 +97,8 @@ export const INITIAL_BIO_LINKS: BioLinkItem[] = [
   },
   {
     id: 'link-3',
-    title: 'Assunto financeiro',
-    subtitle: 'Boletos, faturas e pagamentos',
+    title: 'Falar no Financeiro',
+    subtitle: 'Boletos, 2ª via e pagamentos',
     sectorId: 'financeiro',
     responseTime: '~10 min',
     badgeIcon: 'history',

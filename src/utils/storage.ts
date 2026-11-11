@@ -74,7 +74,31 @@ export const loadBioLinks = (): BioLinkItem[] => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // Check if essential default links are missing
+        const parsedIds = new Set(parsed.map((p: any) => p.id));
+        const parsedSectors = new Set(parsed.map((p: any) => p.sectorId));
+        const missing = INITIAL_BIO_LINKS.filter(
+          (def) => !parsedIds.has(def.id) && !parsedSectors.has(def.sectorId)
+        );
+
+        let combined = parsed;
+        if (missing.length > 0) {
+          combined = [...parsed, ...missing];
+        }
+
+        // Ensure that at least the default links are active if only 1 option was active
+        const activeCount = combined.filter((l: any) => l.active).length;
+        if (activeCount <= 1) {
+          combined = combined.map((l: any) => {
+            if (INITIAL_BIO_LINKS.some((def) => def.id === l.id || def.sectorId === l.sectorId)) {
+              return { ...l, active: true };
+            }
+            return l;
+          });
+        }
+
+        combined.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+        return combined;
       }
     }
   } catch (e) {
@@ -89,6 +113,15 @@ export const saveBioLinks = (links: BioLinkItem[]) => {
   } catch (e) {
     console.error('Failed to save bio links', e);
   }
+};
+
+export const resetDefaultBioLinks = (): BioLinkItem[] => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LINKS, JSON.stringify(INITIAL_BIO_LINKS));
+  } catch (e) {
+    console.error('Failed to reset default bio links', e);
+  }
+  return INITIAL_BIO_LINKS;
 };
 
 export const getBioVisits = (): number => {

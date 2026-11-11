@@ -20,6 +20,80 @@ export function formatCEP(value: string): string {
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 }
 
+/**
+ * Format a lead's date dynamically based on fullDate or timestamp
+ * Displays: "Hoje, 14:30", "Ontem, 09:15", or "DD/MM/YYYY, HH:mm"
+ */
+export function formatLeadDateLabel(fullDate?: string, rawTimestamp?: string, leadId?: string): string {
+  let targetDate: Date | null = null;
+
+  if (fullDate) {
+    const d = new Date(fullDate);
+    if (!isNaN(d.getTime())) targetDate = d;
+  }
+
+  if (!targetDate && leadId && leadId.startsWith('lead-')) {
+    const ts = parseInt(leadId.replace('lead-', ''), 10);
+    if (!isNaN(ts) && ts > 100000000000) {
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) targetDate = d;
+    }
+  }
+
+  if (!targetDate && rawTimestamp) {
+    // If it contains a date like 15/10 or 2026-10-15
+    const match = rawTimestamp.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const year = match[3]
+        ? match[3].length === 2
+          ? 2000 + parseInt(match[3], 10)
+          : parseInt(match[3], 10)
+        : new Date().getFullYear();
+      const d = new Date(year, month, day);
+      if (!isNaN(d.getTime())) targetDate = d;
+    }
+  }
+
+  // If we couldn't parse a date, return the original raw timestamp or fallback
+  if (!targetDate) {
+    return rawTimestamp || 'Data não informada';
+  }
+
+  // Extract time from date
+  const hours = String(targetDate.getHours()).padStart(2, '0');
+  const minutes = String(targetDate.getMinutes()).padStart(2, '0');
+  const timeStr = `${hours}:${minutes}`;
+
+  // Check if today, yesterday or other date
+  const now = new Date();
+  const isToday =
+    targetDate.getDate() === now.getDate() &&
+    targetDate.getMonth() === now.getMonth() &&
+    targetDate.getFullYear() === now.getFullYear();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    targetDate.getDate() === yesterday.getDate() &&
+    targetDate.getMonth() === yesterday.getMonth() &&
+    targetDate.getFullYear() === yesterday.getFullYear();
+
+  if (isToday) {
+    return `Hoje, ${timeStr}`;
+  }
+  if (isYesterday) {
+    return `Ontem, ${timeStr}`;
+  }
+
+  const day = String(targetDate.getDate()).padStart(2, '0');
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const year = targetDate.getFullYear();
+
+  return `${day}/${month}/${year}, ${timeStr}`;
+}
+
 export function cleanPhoneDigits(phone: string): string {
   return phone.replace(/\D/g, '');
 }

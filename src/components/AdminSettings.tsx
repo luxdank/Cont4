@@ -3,6 +3,7 @@ import { CompanyConfig, WhatsAppSector } from '../types';
 import { DEFAULT_AVATAR_URL } from '../data/initialData';
 import { compressImageFile } from '../utils/imageCompressor';
 import { testConnection } from '../firebase';
+import { testEvolutionConnection } from '../utils/evolutionService';
 
 interface AdminSettingsProps {
   config: CompanyConfig;
@@ -29,6 +30,25 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
   const [googleScriptUrl, setGoogleScriptUrl] = useState(config.googleScriptUrl || '');
   const [detectedOrigin, setDetectedOrigin] = useState(config.detectedOrigin || 'Instagram Bio');
 
+  // Evolution API state
+  const [evolutionApiUrl, setEvolutionApiUrl] = useState(config.evolutionApiUrl || '');
+  const [evolutionApiKey, setEvolutionApiKey] = useState(config.evolutionApiKey || '');
+  const [evolutionInstanceName, setEvolutionInstanceName] = useState(config.evolutionInstanceName || '');
+  const [evolutionAutoSendEnabled, setEvolutionAutoSendEnabled] = useState(config.evolutionAutoSendEnabled || false);
+  const [evolutionSendToClient, setEvolutionSendToClient] = useState(config.evolutionSendToClient ?? true);
+  const [evolutionSendToCompany, setEvolutionSendToCompany] = useState(config.evolutionSendToCompany ?? true);
+  const [evolutionClientMessageTemplate, setEvolutionClientMessageTemplate] = useState(
+    config.evolutionClientMessageTemplate ||
+      'Olá, {nome}! Recebemos seu contato através da nossa Bio para o setor *{setor}*. Em instantes um de nossos atendentes falará com você! 😊💜'
+  );
+  const [evolutionCompanyMessageTemplate, setEvolutionCompanyMessageTemplate] = useState(
+    config.evolutionCompanyMessageTemplate ||
+      '🔔 *Novo Lead Capturado na Bio!*\n\n👤 *Nome:* {nome}\n📱 *WhatsApp:* {telefone}\n🎯 *Setor:* {setor}\n📍 *Origem:* {origem}'
+  );
+  const [isTestingEvolution, setIsTestingEvolution] = useState(false);
+  const [evolutionFeedback, setEvolutionFeedback] = useState<{ success: boolean; message: string } | null>(null);
+  const [showEvolutionGuide, setShowEvolutionGuide] = useState(false);
+
   // Sectors list editable copy
   const [sectorList, setSectorList] = useState<WhatsAppSector[]>(sectors);
 
@@ -42,6 +62,14 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
     if (config.bioSlug) setBioSlug(config.bioSlug);
     if (config.googleScriptUrl !== undefined) setGoogleScriptUrl(config.googleScriptUrl);
     if (config.detectedOrigin) setDetectedOrigin(config.detectedOrigin);
+    if (config.evolutionApiUrl !== undefined) setEvolutionApiUrl(config.evolutionApiUrl);
+    if (config.evolutionApiKey !== undefined) setEvolutionApiKey(config.evolutionApiKey);
+    if (config.evolutionInstanceName !== undefined) setEvolutionInstanceName(config.evolutionInstanceName);
+    if (config.evolutionAutoSendEnabled !== undefined) setEvolutionAutoSendEnabled(config.evolutionAutoSendEnabled);
+    if (config.evolutionSendToClient !== undefined) setEvolutionSendToClient(config.evolutionSendToClient);
+    if (config.evolutionSendToCompany !== undefined) setEvolutionSendToCompany(config.evolutionSendToCompany);
+    if (config.evolutionClientMessageTemplate !== undefined) setEvolutionClientMessageTemplate(config.evolutionClientMessageTemplate);
+    if (config.evolutionCompanyMessageTemplate !== undefined) setEvolutionCompanyMessageTemplate(config.evolutionCompanyMessageTemplate);
   }, [config]);
 
   React.useEffect(() => {
@@ -176,7 +204,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
       // Instant autosave so it syncs immediately to the Bio without needing to scroll down
       const updatedConfig: CompanyConfig = {
         ...config,
-        name: companyName.trim() || 'Nova ISP',
+        name: companyName.trim() || config.name || 'Nova ISP',
         bioHeadline: bioHeadline.trim() || 'Olá! Como podemos ajudar?',
         bioSubtitle: bioSubtitle.trim(),
         logoUrl: compressedDataUrl,
@@ -184,10 +212,18 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         bioSlug: bioSlug.trim(),
         googleScriptUrl: googleScriptUrl.trim(),
         detectedOrigin: detectedOrigin.trim(),
+        evolutionApiUrl: evolutionApiUrl.trim(),
+        evolutionApiKey: evolutionApiKey.trim(),
+        evolutionInstanceName: evolutionInstanceName.trim(),
+        evolutionAutoSendEnabled,
+        evolutionSendToClient,
+        evolutionSendToCompany,
+        evolutionClientMessageTemplate,
+        evolutionCompanyMessageTemplate,
       };
 
       onSaveConfig(updatedConfig);
-      setImageSyncFeedback('Imagem sincronizada com a Bio!');
+      setImageSyncFeedback('Imagem salva permanentemente!');
       setTimeout(() => setImageSyncFeedback(null), 3500);
     } catch (err) {
       console.error('Erro ao processar imagem:', err);
@@ -203,7 +239,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
     setLogoUrl(newUrl);
     const updatedConfig: CompanyConfig = {
       ...config,
-      name: companyName.trim() || 'Nova ISP',
+      name: companyName.trim() || config.name || 'Nova ISP',
       bioHeadline: bioHeadline.trim() || 'Olá! Como podemos ajudar?',
       bioSubtitle: bioSubtitle.trim(),
       logoUrl: newUrl.trim() || DEFAULT_AVATAR_URL,
@@ -211,6 +247,14 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
       bioSlug: bioSlug.trim(),
       googleScriptUrl: googleScriptUrl.trim(),
       detectedOrigin: detectedOrigin.trim(),
+      evolutionApiUrl: evolutionApiUrl.trim(),
+      evolutionApiKey: evolutionApiKey.trim(),
+      evolutionInstanceName: evolutionInstanceName.trim(),
+      evolutionAutoSendEnabled,
+      evolutionSendToClient,
+      evolutionSendToCompany,
+      evolutionClientMessageTemplate,
+      evolutionCompanyMessageTemplate,
     };
     onSaveConfig(updatedConfig);
     setImageSyncFeedback('Link da imagem sincronizado!');
@@ -228,6 +272,27 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
     setTimeout(() => setImageSyncFeedback(null), 3000);
   };
 
+  const handleTestEvolution = async () => {
+    setIsTestingEvolution(true);
+    setEvolutionFeedback(null);
+    try {
+      const result = await testEvolutionConnection({
+        serverUrl: evolutionApiUrl,
+        apiKey: evolutionApiKey,
+        instanceName: evolutionInstanceName,
+      });
+      setEvolutionFeedback(result);
+    } catch (e) {
+      setEvolutionFeedback({
+        success: false,
+        message: 'Falha ao testar conexão com o servidor Evolution API.',
+      });
+    } finally {
+      setIsTestingEvolution(false);
+      setTimeout(() => setEvolutionFeedback(null), 5000);
+    }
+  };
+
   // Save all settings
   const handleSaveAll = () => {
     setIsSaving(true);
@@ -241,6 +306,14 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
       bioSlug: bioSlug.trim(),
       googleScriptUrl: googleScriptUrl.trim(),
       detectedOrigin: detectedOrigin.trim(),
+      evolutionApiUrl: evolutionApiUrl.trim(),
+      evolutionApiKey: evolutionApiKey.trim(),
+      evolutionInstanceName: evolutionInstanceName.trim(),
+      evolutionAutoSendEnabled,
+      evolutionSendToClient,
+      evolutionSendToCompany,
+      evolutionClientMessageTemplate,
+      evolutionCompanyMessageTemplate,
     };
 
     onSaveConfig(updatedConfig);
@@ -727,6 +800,33 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           </span>
         </div>
 
+        {config.googleSpreadsheetUrl && (
+          <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">table_chart</span>
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold text-emerald-950 truncate">
+                  {config.googleSpreadsheetTitle || 'Planilha Oficial Google Sheets'}
+                </span>
+                <span className="text-[10px] text-emerald-700">
+                  {config.googleSpreadsheetLastSync ? `Última sinc.: ${config.googleSpreadsheetLastSync}` : 'Conectada via Google Sheets API'}
+                </span>
+              </div>
+            </div>
+            <a
+              href={config.googleSpreadsheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold flex items-center gap-1 shadow-2xs shrink-0"
+            >
+              <span>Abrir Planilha</span>
+              <span className="material-symbols-outlined text-[13px]">north_east</span>
+            </a>
+          </div>
+        )}
+
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-[#0b1c30]">
@@ -841,6 +941,237 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             </span>
           )}
         </div>
+      </section>
+
+      {/* SEÇÃO 5: Automação WhatsApp: Evolution API (Envio 100% Automático) */}
+      <section className="flex flex-col p-4 sm:p-5 rounded-2xl bg-white shadow-xs gap-3.5 border border-slate-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-[#006c49]">
+              <span className="material-symbols-outlined text-[20px]">smart_toy</span>
+            </div>
+            <div>
+              <h3 className="font-display font-semibold text-sm sm:text-base text-[#0b1c30]">
+                Disparo Automático (Evolution API)
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                Envio 100% automático no WhatsApp sem o cliente precisar clicar em enviar
+              </p>
+            </div>
+          </div>
+
+          <div
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+              evolutionAutoSendEnabled
+                ? 'bg-emerald-50 text-[#006c49] border-emerald-200'
+                : 'bg-slate-100 text-slate-600 border-slate-200'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                evolutionAutoSendEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+              }`}
+            ></span>
+            <span>{evolutionAutoSendEnabled ? 'Automático Ativo' : 'Desativado (wa.me)'}</span>
+          </div>
+        </div>
+
+        {/* Toggle Switch */}
+        <div className="flex items-center justify-between p-3 rounded-xl bg-[#eff4ff] border border-slate-200/50">
+          <div className="flex flex-col pr-2">
+            <span className="text-xs font-bold text-[#0b1c30]">
+              Ativar Disparo Automático em Segundo Plano
+            </span>
+            <span className="text-[11px] text-[#3c4a42]">
+              Dispara mensagens pelo Evolution API assim que o cliente clica em "Solicitar Atendimento".
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setEvolutionAutoSendEnabled(!evolutionAutoSendEnabled)}
+            className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+              evolutionAutoSendEnabled ? 'bg-[#10b981]' : 'bg-slate-300'
+            }`}
+          >
+            <span
+              className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow-xs ${
+                evolutionAutoSendEnabled ? 'right-0.5' : 'left-0.5'
+              }`}
+            />
+          </button>
+        </div>
+
+        {evolutionAutoSendEnabled && (
+          <div className="flex flex-col gap-3 pt-1 animate-fadeIn">
+            {/* Guide Accordion */}
+            <div className="rounded-xl border border-blue-200/60 bg-blue-50/50 p-3 text-xs">
+              <button
+                type="button"
+                onClick={() => setShowEvolutionGuide(!showEvolutionGuide)}
+                className="w-full flex items-center justify-between font-semibold text-[#0051d5] text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px]">help_outline</span>
+                  <span>Como conectar sua Evolution API (Passo a Passo Rápido)</span>
+                </div>
+                <span className="material-symbols-outlined text-[18px]">
+                  {showEvolutionGuide ? 'expand_less' : 'expand_more'}
+                </span>
+              </button>
+
+              {showEvolutionGuide && (
+                <div className="mt-2.5 pt-2 border-t border-blue-200/40 flex flex-col gap-1.5 text-[#0b1c30] leading-relaxed">
+                  <p><strong>1. Instale ou acesse o Evolution API:</strong> Você pode usar uma VPS própria (R$ 0 de licença) ou serviços de nuvem gratuitos (Render, Railway, etc.).</p>
+                  <p><strong>2. Crie uma Instância:</strong> Crie uma instância com um nome simples (ex: <code>novaisp</code>) e escaneie o QR Code com o WhatsApp que fará os envios.</p>
+                  <p><strong>3. Copie os dados:</strong> Cole a URL do servidor, o nome da instância e a API Key nos campos abaixo e clique em <strong>"Testar Conexão"</strong>.</p>
+                </div>
+              )}
+            </div>
+
+            {/* URL da API */}
+            <div className="grid grid-cols-1 gap-1">
+              <label className="text-xs font-semibold text-[#0b1c30]">
+                URL do Servidor Evolution API
+              </label>
+              <input
+                type="url"
+                value={evolutionApiUrl}
+                onChange={(e) => setEvolutionApiUrl(e.target.value)}
+                placeholder="https://sua-evolution-api.app.br"
+                className="w-full h-10 px-3 rounded-lg bg-[#eff4ff] text-xs sm:text-sm text-[#0b1c30] shadow-xs focus:outline-none focus:border-[#10b981] border border-transparent focus:bg-white font-mono"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Nome da Instância */}
+              <div className="grid grid-cols-1 gap-1">
+                <label className="text-xs font-semibold text-[#0b1c30]">
+                  Nome da Instância
+                </label>
+                <input
+                  type="text"
+                  value={evolutionInstanceName}
+                  onChange={(e) => setEvolutionInstanceName(e.target.value)}
+                  placeholder="Ex: novaisp"
+                  className="w-full h-10 px-3 rounded-lg bg-[#eff4ff] text-xs sm:text-sm text-[#0b1c30] shadow-xs focus:outline-none focus:border-[#10b981] border border-transparent focus:bg-white font-mono"
+                />
+              </div>
+
+              {/* API Key */}
+              <div className="grid grid-cols-1 gap-1">
+                <label className="text-xs font-semibold text-[#0b1c30]">
+                  API Key (Global ou da Instância)
+                </label>
+                <input
+                  type="password"
+                  value={evolutionApiKey}
+                  onChange={(e) => setEvolutionApiKey(e.target.value)}
+                  placeholder="Sua chave apikey"
+                  className="w-full h-10 px-3 rounded-lg bg-[#eff4ff] text-xs sm:text-sm text-[#0b1c30] shadow-xs focus:outline-none focus:border-[#10b981] border border-transparent focus:bg-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Test Connection Button */}
+            <div className="flex items-center gap-2 pt-1 flex-wrap">
+              <button
+                type="button"
+                onClick={handleTestEvolution}
+                disabled={isTestingEvolution}
+                className="px-3.5 py-2 rounded-full bg-[#10b981] hover:bg-[#059669] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <span
+                  className={`material-symbols-outlined text-[16px] ${
+                    isTestingEvolution ? 'animate-spin' : ''
+                  }`}
+                >
+                  {isTestingEvolution ? 'sync' : 'network_check'}
+                </span>
+                <span>{isTestingEvolution ? 'Testando...' : 'Testar Conexão com Evolution API'}</span>
+              </button>
+
+              {evolutionFeedback && (
+                <span
+                  className={`text-[11px] font-bold flex items-center gap-1 animate-fadeIn ${
+                    evolutionFeedback.success ? 'text-[#006c49]' : 'text-rose-600'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[15px]">
+                    {evolutionFeedback.success ? 'check_circle' : 'error'}
+                  </span>
+                  <span>{evolutionFeedback.message}</span>
+                </span>
+              )}
+            </div>
+
+            {/* Checkbox Options */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-[#0b1c30] font-medium">
+                <input
+                  type="checkbox"
+                  checked={evolutionSendToClient}
+                  onChange={(e) => setEvolutionSendToClient(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#10b981] focus:ring-[#10b981]"
+                />
+                <span>Enviar mensagem automática de boas-vindas para o WhatsApp do cliente</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-[#0b1c30] font-medium">
+                <input
+                  type="checkbox"
+                  checked={evolutionSendToCompany}
+                  onChange={(e) => setEvolutionSendToCompany(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#10b981] focus:ring-[#10b981]"
+                />
+                <span>
+                  Enviar alerta com os dados do lead para o WhatsApp da equipe no número <strong>(21) 2762-5350</strong>
+                </span>
+              </label>
+            </div>
+
+            {/* Message Templates */}
+            {evolutionSendToClient && (
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#0b1c30]">
+                    Mensagem Automática para o Cliente
+                  </label>
+                  <span className="text-[10px] text-slate-500">
+                    Tags: <code>{'{nome}'}</code>, <code>{'{setor}'}</code>
+                  </span>
+                </div>
+                <textarea
+                  rows={2}
+                  value={evolutionClientMessageTemplate}
+                  onChange={(e) => setEvolutionClientMessageTemplate(e.target.value)}
+                  placeholder="Olá, {nome}! Recebemos seu contato..."
+                  className="w-full p-2.5 rounded-lg bg-[#eff4ff] text-xs text-[#0b1c30] focus:outline-none focus:border-[#10b981] border border-transparent focus:bg-white resize-y"
+                />
+              </div>
+            )}
+
+            {evolutionSendToCompany && (
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#0b1c30]">
+                    Mensagem de Alerta para a Central (21) 2762-5350
+                  </label>
+                  <span className="text-[10px] text-slate-500">
+                    Tags: <code>{'{nome}'}</code>, <code>{'{telefone}'}</code>, <code>{'{setor}'}</code>
+                  </span>
+                </div>
+                <textarea
+                  rows={3}
+                  value={evolutionCompanyMessageTemplate}
+                  onChange={(e) => setEvolutionCompanyMessageTemplate(e.target.value)}
+                  placeholder="🔔 Novo Lead Capturado!..."
+                  className="w-full p-2.5 rounded-lg bg-[#eff4ff] text-xs text-[#0b1c30] focus:outline-none focus:border-[#10b981] border border-transparent focus:bg-white resize-y font-mono"
+                />
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Sticky Save Bar */}

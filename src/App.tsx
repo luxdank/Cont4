@@ -32,6 +32,7 @@ import {
   saveLinkClicks,
   recordLocalLinkClick,
   clearLinkClicks,
+  resetDefaultBioLinks,
 } from './utils/storage';
 import {
   subscribeToCompanyConfig,
@@ -40,8 +41,10 @@ import {
   saveSectorsToFirestore,
   subscribeToBioLinks,
   saveBioLinksToFirestore,
+  resetBioLinksInFirestore,
   subscribeToLeads,
   addLeadToFirestore,
+  updateLeadInFirestore,
   deleteLeadFromFirestore,
   subscribeToPixClicks,
   recordPixClickInFirestore,
@@ -188,11 +191,24 @@ export default function App() {
     saveBioLinksToFirestore(newLinks).catch(console.error);
   };
 
+  const handleRestoreDefaultLinks = () => {
+    const defaults = resetDefaultBioLinks();
+    setLinks(defaults);
+    resetBioLinksInFirestore().catch(console.error);
+  };
+
   const handleAddLead = (newLead: LeadRecord) => {
     const updated = [newLead, ...leads];
     setLeads(updated);
     saveLeads(updated);
     addLeadToFirestore(newLead).catch(console.error);
+  };
+
+  const handleUpdateLead = (updatedLead: LeadRecord) => {
+    const updated = leads.map((l) => (l.id === updatedLead.id ? updatedLead : l));
+    setLeads(updated);
+    saveLeads(updated);
+    updateLeadInFirestore(updatedLead).catch(console.error);
   };
 
   const handleDeleteLead = (leadId: string) => {
@@ -418,6 +434,9 @@ export default function App() {
                 leads={leads}
                 sectors={sectors}
                 onAddLead={handleAddLead}
+                onUpdateLead={handleUpdateLead}
+                onDeleteLead={handleDeleteLead}
+                onUpdateConfig={handleUpdateConfig}
                 onOpenSettings={() => setAdminTab('settings')}
               />
             )}
@@ -440,6 +459,7 @@ export default function App() {
                 links={links}
                 sectors={sectors}
                 onSaveLinks={handleUpdateLinks}
+                onRestoreDefaults={handleRestoreDefaultLinks}
                 onViewBio={() => {
                   setMode('bio');
                   setBioStep('step1_select');
