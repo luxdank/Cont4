@@ -1,4 +1,11 @@
-import { CompanyConfig, WhatsAppSector, BioLinkItem, LeadRecord } from '../types';
+import {
+  CompanyConfig,
+  WhatsAppSector,
+  BioLinkItem,
+  LeadRecord,
+  PixClickRecord,
+  LinkClickRecord,
+} from '../types';
 
 export const DEFAULT_AVATAR_URL = 'https://lh3.googleusercontent.com/aida/AEtjO1V_v1os4hcvh8zwG6wyDhaL5tNyCapocovCMo-L1qDWOPWARIOZ0iGxJk6qtQGfCPxobzNm8OMgfVezCIfXtLCTjBzX2otEBdtijsxHNrZNZV1rVPDPm1m49adG0dDwbsZGYaNTb5zVT-0zaBGRz5lTMuOfqt8KawIbyvPaMzGxDarDRGbcNlOBrVu5cY2qmhxXzXnOxHfs9wS0bGz2dtjHl9L3qvVKlqh3PyXUCtsWN8yF27KbAJlxNxLU';
 
@@ -122,4 +129,284 @@ export const INITIAL_BIO_LINKS: BioLinkItem[] = [
   },
 ];
 
-export const INITIAL_LEADS: LeadRecord[] = [];
+export const createSeedLeads = (): LeadRecord[] => {
+  const now = new Date();
+  const dToday1 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 15);
+  const dToday2 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 42);
+  const dToday3 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 30);
+  const dToday4 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 50);
+
+  const dYesterday1 = new Date(Date.now() - 86400000);
+  dYesterday1.setHours(16, 20);
+  const dYesterday2 = new Date(Date.now() - 86400000);
+  dYesterday2.setHours(14, 15);
+  const dYesterday3 = new Date(Date.now() - 86400000);
+  dYesterday3.setHours(11, 5);
+  const dYesterday4 = new Date(Date.now() - 86400000);
+  dYesterday4.setHours(9, 10);
+
+  const d2Days = new Date(Date.now() - 86400000 * 2);
+  d2Days.setHours(15, 45);
+  const d3Days = new Date(Date.now() - 86400000 * 3);
+  d3Days.setHours(13, 20);
+  const d4Days = new Date(Date.now() - 86400000 * 4);
+  d4Days.setHours(10, 0);
+  const d5Days = new Date(Date.now() - 86400000 * 5);
+  d5Days.setHours(17, 30);
+
+  return [
+    {
+      id: 'lead-seed-1',
+      name: 'Mariana Albuquerque',
+      phone: '(21) 98845-2130',
+      sector: 'Atendimento Comercial',
+      sectorId: 'comercial',
+      origin: 'Instagram Bio',
+      status: 'redirected',
+      initials: 'MA',
+      cep: '26255-180',
+      funnelStage: 'ass_enviada',
+      notes: 'Plano Fibra 600 Mega + Wi-Fi 6. Contrato enviado via ZapSign para assinatura digital.',
+      timestamp: dToday1.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: dToday1.toISOString(),
+    },
+    {
+      id: 'lead-seed-2',
+      name: 'Carlos Eduardo Ferreira',
+      phone: '(21) 97123-8890',
+      sector: 'Atendimento Comercial',
+      sectorId: 'comercial',
+      origin: 'Instagram Bio',
+      status: 'redirected',
+      initials: 'CF',
+      cep: '26020-340',
+      funnelStage: 'agenda',
+      scheduledDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10) + 'T14:00',
+      notes: 'Instalação agendada com a equipe Fibra 02. Roteador em comodato.',
+      timestamp: dToday2.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: dToday2.toISOString(),
+    },
+    {
+      id: 'lead-seed-3',
+      name: 'Rafael Souza Lima',
+      phone: '(21) 98341-9988',
+      sector: 'Suporte Técnico',
+      sectorId: 'suporte',
+      origin: 'Instagram Bio',
+      status: 'redirected',
+      initials: 'RL',
+      cep: '26220-140',
+      issue: 'Luz LOS piscando em vermelho na ONU após chuva.',
+      notes: 'Atenuação normalizada remotamente após reinicialização da porta OLT.',
+      timestamp: dToday3.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: dToday3.toISOString(),
+    },
+    {
+      id: 'lead-seed-4',
+      name: 'Gabriel Antunes Castro',
+      phone: '(21) 97455-6677',
+      sector: 'Pague com PIX',
+      sectorId: 'pix',
+      origin: 'Instagram Bio',
+      status: 'redirected',
+      initials: 'GC',
+      cep: '26280-190',
+      issue: 'Comprovante de pagamento PIX para liberação de sinal.',
+      notes: 'Baixa manual e desbloqueio em confiança efetuado com sucesso.',
+      timestamp: dToday4.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: dToday4.toISOString(),
+    },
+    {
+      id: 'lead-seed-5',
+      name: 'Juliana Mendes da Silva',
+      phone: '(21) 99450-3321',
+      sector: 'Atendimento Comercial',
+      sectorId: 'comercial',
+      origin: 'Google Ads',
+      status: 'redirected',
+      initials: 'JS',
+      cep: '26210-010',
+      funnelStage: 'executado',
+      notes: 'Instalação concluída com sucesso! Sinal de fibra excelente (-18dBm). 800 Mega ativo.',
+      timestamp: dYesterday1.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: dYesterday1.toISOString(),
+    },
+    {
+      id: 'lead-seed-6',
+      name: 'Marcos André Figueiredo',
+      phone: '(21) 99765-8822',
+      sector: 'Financeiro',
+      sectorId: 'financeiro',
+      origin: 'Instagram Bio',
+      status: 'redirected',
+      initials: 'MF',
+      cep: '26270-300',
+      issue: 'Solicitação de 2ª via do boleto com vencimento dia 15.',
+      notes: 'Código de barras e chave PIX enviados via WhatsApp. Pagamento confirmado.',
+      timestamp: dYesterday2.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: dYesterday2.toISOString(),
+    },
+    {
+      id: 'lead-seed-7',
+      name: 'Rodrigo Peixoto Gonçalves',
+      phone: '(21) 98214-7709',
+      sector: 'Atendimento Comercial',
+      sectorId: 'comercial',
+      origin: 'Instagram Bio',
+      status: 'redirected',
+      initials: 'RP',
+      cep: '26385-000',
+      funnelStage: 'cancelado',
+      notes: 'Poste sem porta disponível na CTO no momento. Aguardando ampliação de rede no bairro.',
+      timestamp: dYesterday3.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: dYesterday3.toISOString(),
+    },
+    {
+      id: 'lead-seed-8',
+      name: 'Fernanda Cristina Rocha',
+      phone: '(21) 97654-1298',
+      sector: 'Atendimento Comercial',
+      sectorId: 'comercial',
+      origin: 'Instagram Bio',
+      status: 'redirected',
+      initials: 'FR',
+      cep: '26083-115',
+      funnelStage: 'novo',
+      notes: 'Interessada no plano empresarial para consultório odontológico.',
+      timestamp: dYesterday4.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: dYesterday4.toISOString(),
+    },
+    {
+      id: 'lead-seed-9',
+      name: 'Lucas Vinicius Santos',
+      phone: '(21) 99187-6543',
+      sector: 'Atendimento Comercial',
+      sectorId: 'comercial',
+      origin: 'Facebook',
+      status: 'redirected',
+      initials: 'LS',
+      cep: '26285-060',
+      funnelStage: 'agenda',
+      scheduledDate: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10) + 'T09:30',
+      notes: 'Mudança de endereço. Visita agendada para sexta de manhã.',
+      timestamp: d2Days.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: d2Days.toISOString(),
+    },
+    {
+      id: 'lead-seed-10',
+      name: 'Beatriz Oliveira Costa',
+      phone: '(21) 98532-1144',
+      sector: 'Atendimento Comercial',
+      sectorId: 'comercial',
+      origin: 'Instagram Bio',
+      status: 'redirected',
+      initials: 'BC',
+      cep: '26260-220',
+      funnelStage: 'executado',
+      notes: 'Upgrade para 1 Giga Gamer com IP Fixo ativo.',
+      timestamp: d3Days.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: d3Days.toISOString(),
+    },
+    {
+      id: 'lead-seed-11',
+      name: 'Patrícia Nogueira Ramos',
+      phone: '(21) 97233-4411',
+      sector: 'Suporte Técnico',
+      sectorId: 'suporte',
+      origin: 'Site Oficial',
+      status: 'redirected',
+      initials: 'PR',
+      cep: '26015-080',
+      issue: 'Troca da senha do Wi-Fi da rede 5GHz.',
+      notes: 'Configuração efetuada via suporte remoto.',
+      timestamp: d4Days.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: d4Days.toISOString(),
+    },
+    {
+      id: 'lead-seed-12',
+      name: 'Camila Duarte Barros',
+      phone: '(21) 98112-3344',
+      sector: 'Financeiro',
+      sectorId: 'financeiro',
+      origin: 'Instagram Bio',
+      status: 'redirected',
+      initials: 'CB',
+      cep: '26030-410',
+      issue: 'Alteração do vencimento da fatura para o dia 10.',
+      notes: 'Alteração efetuada para as próximas faturas.',
+      timestamp: d5Days.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      fullDate: d5Days.toISOString(),
+    },
+  ];
+};
+
+export const INITIAL_LEADS: LeadRecord[] = createSeedLeads();
+
+export const INITIAL_PIX_CLICKS: PixClickRecord[] = [
+  {
+    id: 'pix-seed-1',
+    linkId: 'link-4',
+    linkTitle: 'Pague com PIX',
+    destinationUrl: 'https://pix.novaisp.com.br/login',
+    origin: 'Instagram Bio',
+    timestamp: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+    fullDate: new Date().toISOString(),
+  },
+  {
+    id: 'pix-seed-2',
+    linkId: 'link-4',
+    linkTitle: 'Pague com PIX',
+    destinationUrl: 'https://pix.novaisp.com.br/login',
+    origin: 'Instagram Bio',
+    timestamp: new Date(Date.now() - 86400000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+    fullDate: new Date(Date.now() - 86400000).toISOString(),
+  },
+];
+
+export const INITIAL_LINK_CLICKS: LinkClickRecord[] = [
+  {
+    id: 'link-click-seed-1',
+    linkId: 'link-1',
+    linkTitle: 'Quero contratar',
+    sectorId: 'comercial',
+    sectorName: 'Atendimento Comercial',
+    origin: 'Instagram Bio',
+    timestamp: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+    fullDate: new Date().toISOString(),
+    isDirectLink: false,
+  },
+  {
+    id: 'link-click-seed-2',
+    linkId: 'link-2',
+    linkTitle: 'Já sou cliente / Suporte',
+    sectorId: 'suporte',
+    sectorName: 'Suporte Técnico',
+    origin: 'Instagram Bio',
+    timestamp: new Date(Date.now() - 3600000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+    fullDate: new Date(Date.now() - 3600000).toISOString(),
+    isDirectLink: false,
+  },
+  {
+    id: 'link-click-seed-3',
+    linkId: 'link-3',
+    linkTitle: 'Falar no Financeiro',
+    sectorId: 'financeiro',
+    sectorName: 'Financeiro',
+    origin: 'Instagram Bio',
+    timestamp: new Date(Date.now() - 86400000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+    fullDate: new Date(Date.now() - 86400000).toISOString(),
+    isDirectLink: false,
+  },
+  {
+    id: 'link-click-seed-4',
+    linkId: 'link-4',
+    linkTitle: 'Pague com PIX',
+    sectorId: 'pix',
+    sectorName: 'Pague com PIX',
+    destinationUrl: 'https://pix.novaisp.com.br/login',
+    origin: 'Instagram Bio',
+    timestamp: new Date(Date.now() - 86400000 * 2).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+    fullDate: new Date(Date.now() - 86400000 * 2).toISOString(),
+    isDirectLink: true,
+  },
+];

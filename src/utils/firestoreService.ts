@@ -22,6 +22,7 @@ import {
   INITIAL_COMPANY_CONFIG,
   INITIAL_SECTORS,
   INITIAL_BIO_LINKS,
+  INITIAL_LEADS,
 } from '../data/initialData';
 
 const CONFIG_DOC_PATH = 'config/main';
@@ -72,6 +73,14 @@ export async function initializeFirestoreDatabase(): Promise<void> {
       const lSnap = await getDoc(lRef);
       if (!lSnap.exists()) {
         await setDoc(lRef, sanitizeForFirestore(link));
+      }
+    }
+
+    // Ensure leads collection is populated
+    const leadsSnap = await getDocs(collection(db, LEADS_COLLECTION));
+    if (leadsSnap.empty) {
+      for (const lead of INITIAL_LEADS) {
+        await setDoc(doc(db, LEADS_COLLECTION, lead.id), sanitizeForFirestore(lead));
       }
     }
   } catch (error) {
@@ -308,16 +317,38 @@ export function subscribeToLeads(
 
   return onSnapshot(
     colRef,
-    (snapshot) => {
-      const leads = snapshot.docs.map((d) => d.data() as LeadRecord);
-      // Sort newest first
-      leads.sort((a, b) => (b.fullDate || '').localeCompare(a.fullDate || ''));
-      onUpdate(leads);
+    async (snapshot) => {
+      if (!snapshot.empty) {
+        const leads = snapshot.docs.map((d) => d.data() as LeadRecord);
+        // Sort newest first
+        leads.sort((a, b) => (b.fullDate || '').localeCompare(a.fullDate || ''));
+        onUpdate(leads);
+      } else {
+        // If Firestore has no leads, auto-seed INITIAL_LEADS so user data is recovered
+        for (const lead of INITIAL_LEADS) {
+          setDoc(doc(db, LEADS_COLLECTION, lead.id), sanitizeForFirestore(lead)).catch(console.warn);
+        }
+        onUpdate(INITIAL_LEADS);
+      }
     },
     (error) => {
       handleFirestoreError(error, OperationType.GET, LEADS_COLLECTION);
     }
   );
+}
+
+/**
+ * Restore all default leads in Firestore
+ */
+export async function restoreLeadsInFirestore(): Promise<LeadRecord[]> {
+  try {
+    for (const lead of INITIAL_LEADS) {
+      await setDoc(doc(db, LEADS_COLLECTION, lead.id), sanitizeForFirestore(lead));
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, LEADS_COLLECTION);
+  }
+  return INITIAL_LEADS;
 }
 
 /**

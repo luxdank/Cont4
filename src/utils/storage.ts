@@ -11,6 +11,8 @@ import {
   INITIAL_SECTORS,
   INITIAL_BIO_LINKS,
   INITIAL_LEADS,
+  INITIAL_PIX_CLICKS,
+  INITIAL_LINK_CLICKS,
 } from '../data/initialData';
 
 export const STORAGE_KEYS = {
@@ -148,12 +150,12 @@ export const loadLeads = (): LeadRecord[] => {
     const saved = localStorage.getItem(STORAGE_KEYS.LEADS);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch (e) {
     console.error('Failed to load leads', e);
   }
-  return [];
+  return INITIAL_LEADS;
 };
 
 export const saveLeads = (leads: LeadRecord[]) => {
@@ -162,6 +164,18 @@ export const saveLeads = (leads: LeadRecord[]) => {
   } catch (e) {
     console.error('Failed to save leads', e);
   }
+};
+
+export const restoreDefaultLeads = (): LeadRecord[] => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(INITIAL_LEADS));
+    localStorage.setItem(STORAGE_KEYS.PIX_CLICKS, JSON.stringify(INITIAL_PIX_CLICKS));
+    localStorage.setItem(STORAGE_KEYS.LINK_CLICKS, JSON.stringify(INITIAL_LINK_CLICKS));
+    localStorage.setItem('smartlink_bio_visits', '142');
+  } catch (e) {
+    console.error('Failed to restore default leads', e);
+  }
+  return INITIAL_LEADS;
 };
 
 export const clearAllLeads = () => {
@@ -176,11 +190,14 @@ export const clearAllLeads = () => {
 export const loadPixClicks = (): PixClickRecord[] => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.PIX_CLICKS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
   } catch (e) {
     console.error('Failed to load pix clicks', e);
   }
-  return [];
+  return INITIAL_PIX_CLICKS;
 };
 
 export const savePixClicks = (clicks: PixClickRecord[]) => {
@@ -209,11 +226,14 @@ export const clearPixClicks = () => {
 export const loadLinkClicks = (): LinkClickRecord[] => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.LINK_CLICKS);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
   } catch (e) {
     console.error('Failed to load link clicks', e);
   }
-  return [];
+  return INITIAL_LINK_CLICKS;
 };
 
 export const saveLinkClicks = (clicks: LinkClickRecord[]) => {

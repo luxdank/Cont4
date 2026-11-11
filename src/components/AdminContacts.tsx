@@ -20,6 +20,7 @@ interface AdminContactsProps {
   onDeleteLead?: (leadId: string) => void;
   onClearLeads?: () => void;
   onUpdateConfig?: (config: CompanyConfig) => void;
+  onRestoreData?: () => void;
   onOpenSettings: () => void;
 }
 
@@ -66,9 +67,17 @@ export const AdminContacts: React.FC<AdminContactsProps> = ({
   onUpdateLead,
   onDeleteLead,
   onUpdateConfig,
+  onRestoreData,
   onOpenSettings,
 }) => {
   const [activeFilter, setActiveFilter] = useState<'all' | string>('all');
+
+  const handleRestoreData = () => {
+    if (confirm('Deseja restaurar todos os dados e leads de demonstração/histórico?')) {
+      onRestoreData?.();
+      showToast('Dados e leads recuperados com sucesso!', 'success');
+    }
+  };
   const [selectedFunnelStage, setSelectedFunnelStage] = useState<'all' | CommercialFunnelStage>('all');
   const [editingLeadNotesId, setEditingLeadNotesId] = useState<string | null>(null);
   const [leadNotesInput, setLeadNotesInput] = useState('');

@@ -33,6 +33,7 @@ import {
   recordLocalLinkClick,
   clearLinkClicks,
   resetDefaultBioLinks,
+  restoreDefaultLeads,
 } from './utils/storage';
 import {
   subscribeToCompanyConfig,
@@ -46,6 +47,7 @@ import {
   addLeadToFirestore,
   updateLeadInFirestore,
   deleteLeadFromFirestore,
+  restoreLeadsInFirestore,
   subscribeToPixClicks,
   recordPixClickInFirestore,
   deletePixClickFromFirestore,
@@ -194,6 +196,16 @@ export default function App() {
   const handleRestoreDefaultLinks = () => {
     const defaults = resetDefaultBioLinks();
     setLinks(defaults);
+    resetBioLinksInFirestore().catch(console.error);
+  };
+
+  const handleRestoreData = () => {
+    const defaultLeads = restoreDefaultLeads();
+    setLeads(defaultLeads);
+    restoreLeadsInFirestore().catch(console.error);
+
+    const defaultBioLinks = resetDefaultBioLinks();
+    setLinks(defaultBioLinks);
     resetBioLinksInFirestore().catch(console.error);
   };
 
@@ -437,6 +449,7 @@ export default function App() {
                 onUpdateLead={handleUpdateLead}
                 onDeleteLead={handleDeleteLead}
                 onUpdateConfig={handleUpdateConfig}
+                onRestoreData={handleRestoreData}
                 onOpenSettings={() => setAdminTab('settings')}
               />
             )}
