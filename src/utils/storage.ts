@@ -11,8 +11,6 @@ import {
   INITIAL_SECTORS,
   INITIAL_BIO_LINKS,
   INITIAL_LEADS,
-  INITIAL_PIX_CLICKS,
-  INITIAL_LINK_CLICKS,
 } from '../data/initialData';
 
 export const STORAGE_KEYS = {
@@ -76,31 +74,7 @@ export const loadBioLinks = (): BioLinkItem[] => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Check if essential default links are missing
-        const parsedIds = new Set(parsed.map((p: any) => p.id));
-        const parsedSectors = new Set(parsed.map((p: any) => p.sectorId));
-        const missing = INITIAL_BIO_LINKS.filter(
-          (def) => !parsedIds.has(def.id) && !parsedSectors.has(def.sectorId)
-        );
-
-        let combined = parsed;
-        if (missing.length > 0) {
-          combined = [...parsed, ...missing];
-        }
-
-        // Ensure that at least the default links are active if only 1 option was active
-        const activeCount = combined.filter((l: any) => l.active).length;
-        if (activeCount <= 1) {
-          combined = combined.map((l: any) => {
-            if (INITIAL_BIO_LINKS.some((def) => def.id === l.id || def.sectorId === l.sectorId)) {
-              return { ...l, active: true };
-            }
-            return l;
-          });
-        }
-
-        combined.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
-        return combined;
+        return parsed;
       }
     }
   } catch (e) {
@@ -115,15 +89,6 @@ export const saveBioLinks = (links: BioLinkItem[]) => {
   } catch (e) {
     console.error('Failed to save bio links', e);
   }
-};
-
-export const resetDefaultBioLinks = (): BioLinkItem[] => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.LINKS, JSON.stringify(INITIAL_BIO_LINKS));
-  } catch (e) {
-    console.error('Failed to reset default bio links', e);
-  }
-  return INITIAL_BIO_LINKS;
 };
 
 export const getBioVisits = (): number => {
@@ -150,12 +115,12 @@ export const loadLeads = (): LeadRecord[] => {
     const saved = localStorage.getItem(STORAGE_KEYS.LEADS);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.error('Failed to load leads', e);
   }
-  return INITIAL_LEADS;
+  return [];
 };
 
 export const saveLeads = (leads: LeadRecord[]) => {
@@ -164,18 +129,6 @@ export const saveLeads = (leads: LeadRecord[]) => {
   } catch (e) {
     console.error('Failed to save leads', e);
   }
-};
-
-export const restoreDefaultLeads = (): LeadRecord[] => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(INITIAL_LEADS));
-    localStorage.setItem(STORAGE_KEYS.PIX_CLICKS, JSON.stringify(INITIAL_PIX_CLICKS));
-    localStorage.setItem(STORAGE_KEYS.LINK_CLICKS, JSON.stringify(INITIAL_LINK_CLICKS));
-    localStorage.setItem('smartlink_bio_visits', '142');
-  } catch (e) {
-    console.error('Failed to restore default leads', e);
-  }
-  return INITIAL_LEADS;
 };
 
 export const clearAllLeads = () => {
@@ -190,14 +143,11 @@ export const clearAllLeads = () => {
 export const loadPixClicks = (): PixClickRecord[] => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.PIX_CLICKS);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
+    if (saved) return JSON.parse(saved);
   } catch (e) {
     console.error('Failed to load pix clicks', e);
   }
-  return INITIAL_PIX_CLICKS;
+  return [];
 };
 
 export const savePixClicks = (clicks: PixClickRecord[]) => {
@@ -226,14 +176,11 @@ export const clearPixClicks = () => {
 export const loadLinkClicks = (): LinkClickRecord[] => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.LINK_CLICKS);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
+    if (saved) return JSON.parse(saved);
   } catch (e) {
     console.error('Failed to load link clicks', e);
   }
-  return INITIAL_LINK_CLICKS;
+  return [];
 };
 
 export const saveLinkClicks = (clicks: LinkClickRecord[]) => {

@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { CompanyConfig, BioLinkItem, WhatsAppSector } from '../types';
 import { incrementBioVisits } from '../utils/storage';
 import { incrementBioVisitsInFirestore } from '../utils/firestoreService';
-import { INITIAL_BIO_LINKS } from '../data/initialData';
 
 interface BioHomeProps {
   config: CompanyConfig;
@@ -127,20 +126,10 @@ export const BioHome: React.FC<BioHomeProps> = ({
 
         {/* Options List / Action Cards */}
         <div className="w-full flex flex-col gap-3" id="link-options-container">
-          {(() => {
-            const rawList = links && links.length > 0 ? links : INITIAL_BIO_LINKS;
-            let activeList = rawList.filter((l) => l.active !== false);
-            // If only 1 link is active, merge missing default links so customer options are never lost
-            if (activeList.length <= 1) {
-              const activeIds = new Set(activeList.map((l) => l.id));
-              const activeSectors = new Set(activeList.map((l) => l.sectorId));
-              const missingDefaults = INITIAL_BIO_LINKS.filter(
-                (d) => !activeIds.has(d.id) && !activeSectors.has(d.sectorId)
-              );
-              activeList = [...activeList, ...missingDefaults];
-            }
-            return activeList.sort((a, b) => (a.order || 0) - (b.order || 0));
-          })().map((item) => {
+          {links
+            .filter((l) => l.active)
+            .sort((a, b) => a.order - b.order)
+            .map((item) => {
               const sector = getSector(item.sectorId);
 
               // Distinct color accents matching design

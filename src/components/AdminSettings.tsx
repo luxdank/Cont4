@@ -800,33 +800,6 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           </span>
         </div>
 
-        {config.googleSpreadsheetUrl && (
-          <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[18px]">table_chart</span>
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold text-emerald-950 truncate">
-                  {config.googleSpreadsheetTitle || 'Planilha Oficial Google Sheets'}
-                </span>
-                <span className="text-[10px] text-emerald-700">
-                  {config.googleSpreadsheetLastSync ? `Última sinc.: ${config.googleSpreadsheetLastSync}` : 'Conectada via Google Sheets API'}
-                </span>
-              </div>
-            </div>
-            <a
-              href={config.googleSpreadsheetUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold flex items-center gap-1 shadow-2xs shrink-0"
-            >
-              <span>Abrir Planilha</span>
-              <span className="material-symbols-outlined text-[13px]">north_east</span>
-            </a>
-          </div>
-        )}
-
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-[#0b1c30]">
